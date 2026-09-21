@@ -35,6 +35,12 @@ const AdminMasjidFormPage = lazy(() =>
     default: m.AdminMasjidFormPage,
   })),
 );
+const AboutPage = lazy(() =>
+  import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })),
+);
+const ContactPage = lazy(() =>
+  import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })),
+);
 
 function PageFallback() {
   return (
@@ -57,6 +63,8 @@ export const router = createBrowserRouter([
       { path: "/masjid/:slug", element: suspended(<MasjidDetailPage />) },
       { path: "/login", element: suspended(<LoginPage />) },
       { path: "/account", element: suspended(<AccountPage />) },
+      { path: "/about", element: suspended(<AboutPage />) },
+      { path: "/contact", element: suspended(<ContactPage />) },
       {
         path: "/admin/suggestions",
         element: suspended(
