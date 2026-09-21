@@ -143,3 +143,48 @@ export async function rejectSuggestion(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw new Error(`Could not reject suggestion: ${error.message}`);
 }
+
+/* ---------------------------------------------------------------------------
+ * Masjid editors (migration 0007)
+ *
+ * An editor maintains one masjid's times directly, skipping the suggestion
+ * queue. Granting and revoking is admin-only, enforced by RLS and re-checked
+ * inside the security-definer functions these call.
+ * ------------------------------------------------------------------------- */
+
+export interface MasjidEditor {
+  userId: string;
+  email: string;
+  createdAt: string;
+}
+
+export async function listMasjidEditors(masjidId: string): Promise<MasjidEditor[]> {
+  const { data, error } = await requireClient().rpc("list_masjid_editors", {
+    target_masjid_id: masjidId,
+  });
+  if (error) throw new Error(`Could not load editors: ${error.message}`);
+  const rows = (data ?? []) as { user_id: string; email: string; created_at: string }[];
+  return rows.map((row) => ({
+    userId: row.user_id,
+    email: row.email,
+    createdAt: row.created_at,
+  }));
+}
+
+/** The person must already have an account — the lookup is by email. */
+export async function grantMasjidEditor(masjidId: string, email: string): Promise<void> {
+  const { error } = await requireClient().rpc("grant_masjid_editor", {
+    editor_email: email,
+    target_masjid_id: masjidId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function revokeMasjidEditor(masjidId: string, userId: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("masjid_editors")
+    .delete()
+    .eq("masjid_id", masjidId)
+    .eq("user_id", userId);
+  if (error) throw new Error(`Could not revoke editor access: ${error.message}`);
+}

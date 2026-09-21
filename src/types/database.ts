@@ -129,6 +129,12 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      masjid_editors: {
+        Row: { user_id: string; masjid_id: string; created_at: string };
+        Insert: { user_id: string; masjid_id: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       masjid_confidence: {
@@ -138,6 +144,15 @@ export interface Database {
     };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      is_masjid_editor: { Args: { target_masjid_id: string }; Returns: boolean };
+      grant_masjid_editor: {
+        Args: { editor_email: string; target_masjid_id: string };
+        Returns: void;
+      };
+      list_masjid_editors: {
+        Args: { target_masjid_id: string };
+        Returns: { user_id: string; email: string; created_at: string }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

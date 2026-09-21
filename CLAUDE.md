@@ -19,10 +19,16 @@ Read `BUILD_GUIDE.md` for the full phase-by-phase design rationale.
    `(data, now)` — no `Date.now()` inside. That is what makes countdowns and
    the recommendation engine testable, and why components take `now` as a
    prop or read the `useNow` hook.
-4. **Users signal, admins write.** Community input is append-only
-   (`masjid_confirmations`, `masjid_reports`, `time_suggestions`). Official
-   data changes only through the admin dashboard, enforced by RLS — not by
-   hidden UI. RLS is the real security boundary.
+4. **Users signal, admins write — plus approved editors, scoped to one
+   masjid.** Community input is append-only (`masjid_confirmations`,
+   `masjid_reports`, `time_suggestions`) and anyone may submit, signed in or
+   not. Official data is written by admins, and — since `0007` — by a
+   `masjid_editors` grant: an imam or volunteer an admin has approved, who
+   may write `jummah_times` for **their own masjid only**, skipping the
+   suggestion queue. Editors cannot touch `masjids`, cannot write another
+   masjid's times, and cannot grant access to anyone (including themselves);
+   granting is admin-only and happens in the admin dashboard. RLS is the real
+   security boundary — not hidden UI.
 5. **Design tokens, never hex codes.** All colors live in
    `tailwind.config.ts`. Saffron is reserved for the things people act on:
    Jummah times, countdowns, Directions buttons.
@@ -76,6 +82,20 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   `supabase config diff` and read it before ever running `config push`, or
   use a scoped Management API `PATCH` (e.g. `/v1/projects/{ref}/config/auth`)
   for a single field like `site_url`.
+- **Vercel blocks deployments whose git commit author isn't a Vercel user
+  with project access**, and on Hobby + a private repo it can't grant that
+  access. Symptom: deployments sit at `Building…` forever, `vercel ls` shows
+  `UNKNOWN` with no duration, and `vercel logs` returns nothing at all —
+  because the build never starts. It hits manual `vercel --prod` too, not
+  just the GitHub integration, since CLI deploys carry the same commit
+  metadata. Fixed by adding the commit-author address (`afridcho123@gmail.com`)
+  as a verified second email on the Vercel account. If deploys ever go quiet
+  again, check the commit author before suspecting the build.
+- **Verify a deploy by its content, not its status code.** The production
+  alias silently stayed on an old deployment for hours while every check
+  returned a healthy `200`. Confirm something only the new build has (a new
+  route, new nav) actually renders, or check `vercel alias ls` to see which
+  deployment the domain currently points at.
 - `npm run lint` has no ESLint config in this repo (only the script and
   deps exist) — CI intentionally runs `typecheck` + `build` only, per
   `BUILD_GUIDE.md`'s Phase 6 spec. Setting up ESLint is unstarted work, not
@@ -83,10 +103,11 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 
 ## Data
 
-- `supabase/migrations/0001_initial_schema.sql` through `0006_open_suggestions.sql`
+- `supabase/migrations/0001_initial_schema.sql` through `0007_masjid_editors.sql`
   — run in order. `0004_grants.sql` is the anon/authenticated table grants
   fix (see Gotchas); `0005` is a one-off cleanup, not a schema change;
-  `0006` opens `time_suggestions` to anonymous submissions.
+  `0006` opens `time_suggestions` to anonymous submissions; `0007` adds
+  `masjid_editors` (see architecture rule 4).
 - `supabase/seed.sql` — 38 masjids (Manhattan, Queens), with phone/website.
 - `supabase/seed_batch2.sql` — 166 more (Manhattan, Queens, Brooklyn),
   sourced from Google Places, deduplicated by coordinate proximity (<60m).
@@ -130,7 +151,16 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 - Zero `jummah_times` rows exist. Every masjid renders the "No khutbah time
   listed yet" empty state. **This is now the main remaining work** —
   `/admin` already sorts masjids with no times first.
-- Latest feature: **anonymous time suggestions.** `SuggestTimeForm` no
+- Latest feature: **masjid editors** (`0007`). An admin can grant a signed-up
+  user editor access to one masjid from that masjid's admin page; the editor
+  then writes its `jummah_times` directly. No editor-facing UI exists yet —
+  the permission model is in place, but an editor currently has no screen of
+  their own to use it, so that's the natural next piece. Verified against the
+  live project with seven rolled-back `set local role authenticated` tests
+  covering both directions (editor can write their own masjid; cannot write
+  another's, cannot self-grant, cannot re-point a row to another masjid via
+  update, and a plain signed-in user still cannot write at all).
+- Before that: **anonymous time suggestions.** `SuggestTimeForm` no
   longer gates on sign-in — logged-out visitors get the same form plus an
   optional "name or email" field, submitted via `time_suggestions` with
   `user_id = null`. The `0006_open_suggestions.sql` migration's `with check

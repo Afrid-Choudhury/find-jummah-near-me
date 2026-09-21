@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Skeleton } from "@/components/ui";
 import { masjidKeys, useMasjids } from "@/hooks/useMasjids";
 import { BOROUGHS } from "@/lib/constants";
@@ -258,6 +258,7 @@ export function AdminMasjidFormPage() {
         <>
           <ReviewCard masjid={existing} onChanged={() => void refresh()} />
           <JummahTimesEditor masjid={existing} onChanged={() => void refresh()} />
+          <EditorsCard masjid={existing} />
         </>
       )}
     </div>
@@ -460,6 +461,112 @@ function ReviewCard({ masjid, onChanged }: { masjid: Masjid; onChanged: () => vo
         counters. Old signals are kept in the database for history.
       </p>
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Masjid editors — who may maintain this masjid's times without the queue
+ * ------------------------------------------------------------------------- */
+
+function EditorsCard({ masjid }: { masjid: Masjid }) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const editors = useQuery({
+    queryKey: ["masjid-editors", masjid.id],
+    queryFn: () => admin.listMasjidEditors(masjid.id),
+  });
+
+  const run = async (action: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      await editors.refetch();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Action failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const grant = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) return;
+    await run(async () => {
+      await admin.grantMasjidEditor(masjid.id, email.trim());
+      setEmail("");
+    });
+  };
+
+  const inputClass = "h-11 w-full rounded-lg border border-line bg-paper-raised px-3 text-sm";
+
+  return (
+    <Card className="space-y-3 p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Editors</h2>
+      <p className="text-xs text-ink-muted">
+        An editor can add, change and remove this masjid&apos;s Jummah times directly, without
+        going through the suggestion queue. They can&apos;t edit any other masjid, and can&apos;t
+        grant access to anyone else.
+      </p>
+
+      {editors.isLoading ? (
+        <Skeleton className="h-12 rounded-lg" />
+      ) : editors.error ? (
+        <p className="text-sm text-red-700">
+          {editors.error instanceof Error ? editors.error.message : "Could not load editors."}
+        </p>
+      ) : (editors.data ?? []).length === 0 ? (
+        <p className="text-sm text-ink-muted">No editors yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {editors.data!.map((editor) => (
+            <li
+              key={editor.userId}
+              className="flex items-center justify-between gap-2 rounded-lg border border-line p-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm text-night">{editor.email}</p>
+                <p className="text-xs text-ink-faint">
+                  Added {formatVerifiedDate(editor.createdAt)}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void run(() => admin.revokeMasjidEditor(masjid.id, editor.userId))}
+                className="shrink-0 text-xs text-red-700 underline disabled:opacity-50"
+              >
+                Revoke
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={(e) => void grant(e)} className="rounded-lg bg-paper-sunken p-3">
+        <label htmlFor="editor-email" className="mb-1 block text-sm font-medium text-night">
+          Grant editor access
+        </label>
+        <input
+          id="editor-email"
+          type="email"
+          className={inputClass}
+          placeholder="Their account email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <p className="mt-1 text-xs text-ink-faint">
+          They need to have signed up already — access is matched to an existing account.
+        </p>
+        <Button type="submit" size="sm" className="mt-2" disabled={busy || !email.trim()}>
+          {busy ? "Working…" : "Grant access"}
+        </Button>
+      </form>
+
+      {error && <p className="text-sm text-red-700">{error}</p>}
     </Card>
   );
 }
