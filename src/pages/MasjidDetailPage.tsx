@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ConfidenceMeta } from "@/components/masjid/ConfidenceMeta";
 import { ConfidenceVote } from "@/components/masjid/ConfidenceVote";
@@ -11,6 +12,7 @@ import { useMasjid } from "@/hooks/useMasjids";
 export function MasjidDetailPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const { data: masjid, isLoading, error } = useMasjid(slug);
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   useDocumentMeta(
     masjid ? `${masjid.name} — Jummah Times | Find Jummah Near Me` : "Find Jummah Near Me",
@@ -60,8 +62,12 @@ export function MasjidDetailPage() {
         <DirectionsButton masjid={masjid} className="mt-3 w-full" />
       </header>
 
-      <KhutbahTiming masjid={masjid}>
-        <SuggestTimeForm masjid={masjid} />
+      <KhutbahTiming masjid={masjid} onSuggestTime={() => setSuggestOpen(true)}>
+        {masjid.jummahTimes.length > 0 ? (
+          <SuggestTimeForm masjid={masjid} />
+        ) : (
+          <SuggestTimeForm masjid={masjid} open={suggestOpen} onOpenChange={setSuggestOpen} />
+        )}
       </KhutbahTiming>
 
       <Card className="p-4">

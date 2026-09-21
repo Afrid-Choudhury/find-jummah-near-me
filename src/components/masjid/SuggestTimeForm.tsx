@@ -7,6 +7,15 @@ import type { Masjid } from "@/types";
 
 interface SuggestTimeFormProps {
   masjid: Masjid;
+  /**
+   * Controlled open state. Pass both `open` and `onOpenChange` when an
+   * outside trigger (e.g. EmptyKhutbahTiming's "Add it" button) owns the
+   * toggle — the form then renders nothing while closed, instead of its
+   * own trigger button. Omit both for the self-contained default: an
+   * internal "Suggest a Jummah time" button that opens the form itself.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -14,9 +23,12 @@ interface SuggestTimeFormProps {
  * in or not; it lands in the admin queue and only goes public after
  * approval.
  */
-export function SuggestTimeForm({ masjid }: SuggestTimeFormProps) {
+export function SuggestTimeForm({ masjid, open: controlledOpen, onOpenChange }: SuggestTimeFormProps) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const isControlled = onOpenChange !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? (controlledOpen ?? false) : internalOpen;
+  const setOpen = isControlled ? (onOpenChange as (open: boolean) => void) : setInternalOpen;
   const [khutbahNumber, setKhutbahNumber] = useState(1);
   const [khutbahTime, setKhutbahTime] = useState("13:00");
   const [iqamahTime, setIqamahTime] = useState("");
@@ -37,6 +49,9 @@ export function SuggestTimeForm({ masjid }: SuggestTimeFormProps) {
   }
 
   if (!open) {
+    // Controlled: the caller owns the trigger (e.g. EmptyKhutbahTiming's
+    // "Add it" button) and renders it already, so don't show a second one.
+    if (isControlled) return null;
     return (
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
         Suggest a Jummah time

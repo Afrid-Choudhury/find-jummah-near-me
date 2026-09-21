@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { useNow } from "@/hooks/useNow";
 import {
   buildKhutbahTimeline,
@@ -7,6 +7,7 @@ import {
   formatVerifiedDate,
   type KhutbahTimeline,
 } from "@/lib/jummah";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { JummahTime, Masjid } from "@/types";
 
@@ -16,6 +17,8 @@ interface KhutbahTimingProps {
   now?: Date;
   /** Footer slot — the detail page passes the suggest-a-time form. */
   children?: ReactNode;
+  /** Opens the suggest-a-time form. Drives the empty state's "Add it" button. */
+  onSuggestTime?: () => void;
 }
 
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th"] as const;
@@ -32,7 +35,7 @@ function shiftLabel(time: JummahTime, total: number): string {
  * going. Only khutbah and iqamah are listed data; anything derived from them
  * is marked with ~ and called an estimate.
  */
-export function KhutbahTiming({ masjid, now: fixedNow, children }: KhutbahTimingProps) {
+export function KhutbahTiming({ masjid, now: fixedNow, children, onSuggestTime }: KhutbahTimingProps) {
   const tick = useNow();
   const now = fixedNow ?? tick;
   const times = masjid.jummahTimes;
@@ -70,7 +73,7 @@ export function KhutbahTiming({ masjid, now: fixedNow, children }: KhutbahTiming
           </p>
         </>
       ) : (
-        <EmptyKhutbahTiming masjid={masjid} />
+        <EmptyKhutbahTiming masjid={masjid} {...(onSuggestTime ? { onSuggestTime } : {})} />
       )}
 
       {children && <div className="mt-4 border-t border-line pt-3">{children}</div>}
@@ -171,18 +174,39 @@ function TimelineStep({ clock, title, note, tone, last = false }: TimelineStepPr
   );
 }
 
-function EmptyKhutbahTiming({ masjid }: { masjid: Masjid }) {
+interface EmptyKhutbahTimingProps {
+  masjid: Masjid;
+  onSuggestTime?: () => void;
+}
+
+function EmptyKhutbahTiming({ masjid, onSuggestTime }: EmptyKhutbahTimingProps) {
+  const canSuggest = isSupabaseConfigured && onSuggestTime;
+
   return (
     <div className="mt-3 rounded-lg border border-dashed border-line bg-paper-sunken p-4">
-      <p className="text-sm font-medium text-night">No khutbah time listed yet</p>
-      <p className="mt-1 text-sm text-ink-muted">
-        We have this masjid&apos;s location but not its Friday schedule. Please call
-        ahead to confirm before you travel.
-      </p>
+      {canSuggest ? (
+        <>
+          <p className="text-sm font-medium text-night">Know this masjid&apos;s Jummah time?</p>
+          <Button size="md" className="mt-2" onClick={onSuggestTime}>
+            Add it
+          </Button>
+          <p className="mt-4 text-xs text-ink-faint">
+            No verified schedule yet — call ahead to confirm before you travel.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-night">No khutbah time listed yet</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            We have this masjid&apos;s location but not its Friday schedule. Please call
+            ahead to confirm before you travel.
+          </p>
+        </>
+      )}
       {masjid.phone && (
         <a
           href={`tel:${masjid.phone.replace(/[^+\d]/g, "")}`}
-          className="mt-3 inline-flex h-11 items-center rounded-full border border-line bg-paper-raised px-4 text-sm font-medium text-night"
+          className="mt-2 inline-flex h-11 items-center rounded-full border border-line bg-paper-raised px-4 text-sm font-medium text-night"
         >
           Call {masjid.phone}
         </a>
