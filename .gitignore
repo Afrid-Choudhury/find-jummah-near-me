@@ -11,3 +11,6 @@ dist-ssr
 /tailwind.config.js
 /tailwind.config.d.ts
 /public/sitemap.xml
+
+.vercel
+.env*
