@@ -83,9 +83,10 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 
 ## Data
 
-- `supabase/migrations/0001_initial_schema.sql` through `0005_remove_test_confirmation.sql`
+- `supabase/migrations/0001_initial_schema.sql` through `0006_open_suggestions.sql`
   — run in order. `0004_grants.sql` is the anon/authenticated table grants
-  fix (see Gotchas); `0005` is a one-off cleanup, not a schema change.
+  fix (see Gotchas); `0005` is a one-off cleanup, not a schema change;
+  `0006` opens `time_suggestions` to anonymous submissions.
 - `supabase/seed.sql` — 38 masjids (Manhattan, Queens), with phone/website.
 - `supabase/seed_batch2.sql` — 166 more (Manhattan, Queens, Brooklyn),
   sourced from Google Places, deduplicated by coordinate proximity (<60m).
@@ -129,11 +130,21 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 - Zero `jummah_times` rows exist. Every masjid renders the "No khutbah time
   listed yet" empty state. **This is now the main remaining work** —
   `/admin` already sorts masjids with no times first.
-- Latest features: Phase 6 basics (shell-level `ErrorBoundary`, per-masjid
+- Latest feature: **anonymous time suggestions.** `SuggestTimeForm` no
+  longer gates on sign-in — logged-out visitors get the same form plus an
+  optional "name or email" field, submitted via `time_suggestions` with
+  `user_id = null`. The `0006_open_suggestions.sql` migration's `with check
+  (user_id is null and status = 'pending')` makes it impossible for an
+  anonymous insert to land pre-approved or attributed to someone else's
+  account — verified directly against the live project with `set local
+  role anon` (both a spoofed `status = 'approved'` and a spoofed `user_id`
+  were rejected by RLS). The admin review queue is otherwise unchanged:
+  nothing reaches `jummah_times` without approval.
+- Before that: Phase 6 basics (shell-level `ErrorBoundary`, per-masjid
   `<title>`/meta via `useDocumentMeta`, OG/Twitter tags, `robots.txt`, and
   an auto-generated `sitemap.xml` that includes every masjid once Supabase
-  env vars are present), and before that the **Khutbah timing** section on
-  the masjid detail page (`src/components/masjid/KhutbahTiming.tsx` +
+  env vars are present), and the **Khutbah timing** section on the masjid
+  detail page (`src/components/masjid/KhutbahTiming.tsx` +
   `buildKhutbahTimeline` in `src/lib/jummah.ts`).
 - `vercel.json` (SPA rewrite) and `public/_redirects` are in place and
   confirmed working (deep-linking straight to `/masjid/:slug` on the

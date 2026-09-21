@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -11,34 +10,23 @@ interface SuggestTimeFormProps {
 }
 
 /**
- * Community input, the safe way: signed-in users propose a khutbah time;
- * it lands in the admin queue and only goes public after approval.
+ * Community input, the safe way: anyone can propose a khutbah time, signed
+ * in or not; it lands in the admin queue and only goes public after
+ * approval.
  */
 export function SuggestTimeForm({ masjid }: SuggestTimeFormProps) {
   const { user } = useAuth();
-  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [khutbahNumber, setKhutbahNumber] = useState(1);
   const [khutbahTime, setKhutbahTime] = useState("13:00");
   const [iqamahTime, setIqamahTime] = useState("");
   const [language, setLanguage] = useState("English");
   const [notes, setNotes] = useState("");
+  const [contact, setContact] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   if (!isSupabaseConfigured) return null;
-
-  if (!user) {
-    return (
-      <p className="text-sm text-ink-muted">
-        Know this masjid&apos;s Jummah time?{" "}
-        <Link to="/login" state={{ from: location.pathname }} className="font-medium text-night underline">
-          Sign in to suggest it
-        </Link>
-        .
-      </p>
-    );
-  }
 
   if (state === "sent") {
     return (
@@ -70,7 +58,8 @@ export function SuggestTimeForm({ masjid }: SuggestTimeFormProps) {
           language: language.trim() || "English",
           notes: notes.trim() || null,
         },
-        { id: user.id, email: user.email ?? "unknown" },
+        user ? { id: user.id, email: user.email ?? "unknown" } : null,
+        contact.trim() || null,
       );
       setState("sent");
     } catch (err) {
@@ -111,6 +100,13 @@ export function SuggestTimeForm({ masjid }: SuggestTimeFormProps) {
       </div>
       <input className={inputClass} placeholder="Notes (optional) — e.g. summer schedule, arrive early"
         value={notes} onChange={(e) => setNotes(e.target.value)} />
+      {!user && (
+        <label className="text-sm">
+          <span className="mb-1 block font-medium text-night">Name or email (optional)</span>
+          <input className={inputClass} placeholder="So we can follow up if we have questions"
+            value={contact} onChange={(e) => setContact(e.target.value)} />
+        </label>
+      )}
       {error && <p className="text-sm text-red-700">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={state === "sending"}>

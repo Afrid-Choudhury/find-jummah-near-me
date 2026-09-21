@@ -38,7 +38,7 @@ export type SuggestionStatus = "pending" | "approved" | "rejected";
 export interface TimeSuggestion {
   id: string;
   masjidId: string;
-  submittedBy: string;
+  submittedBy: string | null;
   khutbahNumber: number;
   khutbahTime: string;
   iqamahTime: string | null;

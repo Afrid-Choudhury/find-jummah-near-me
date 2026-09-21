@@ -96,8 +96,8 @@ export interface Database {
         Row: {
           id: string;
           masjid_id: string;
-          user_id: string;
-          submitted_by: string;
+          user_id: string | null;
+          submitted_by: string | null;
           khutbah_number: number;
           khutbah_time: string;
           iqamah_time: string | null;
@@ -110,8 +110,8 @@ export interface Database {
         Insert: {
           id?: string;
           masjid_id: string;
-          user_id: string;
-          submitted_by: string;
+          user_id?: string | null;
+          submitted_by?: string | null;
           khutbah_number: number;
           khutbah_time: string;
           iqamah_time?: string | null;

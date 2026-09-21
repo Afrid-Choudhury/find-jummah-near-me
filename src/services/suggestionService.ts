@@ -23,14 +23,22 @@ export interface NewSuggestion {
   notes: string | null;
 }
 
+/**
+ * `submitter` is null for a logged-out visitor — the row lands with
+ * user_id = null, which the anon RLS policy requires. `contact` is an
+ * optional name/email an anonymous submitter can leave for follow-up; it's
+ * ignored when signed in, since submitted_by already carries the account
+ * email.
+ */
 export async function submitSuggestion(
   input: NewSuggestion,
-  user: { id: string; email: string },
+  submitter: { id: string; email: string } | null,
+  contact?: string | null,
 ): Promise<void> {
   const { error } = await requireClient().from("time_suggestions").insert({
     masjid_id: input.masjidId,
-    user_id: user.id,
-    submitted_by: user.email,
+    user_id: submitter?.id ?? null,
+    submitted_by: submitter?.email ?? contact ?? null,
     khutbah_number: input.khutbahNumber,
     khutbah_time: input.khutbahTime,
     iqamah_time: input.iqamahTime,

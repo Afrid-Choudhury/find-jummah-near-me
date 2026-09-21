@@ -61,7 +61,7 @@ export function AdminSuggestionsPage() {
                   <div>
                     <p className="font-medium text-night">{masjid?.name ?? "Unknown masjid"}</p>
                     <p className="text-xs text-ink-muted">
-                      from {s.submittedBy} · {new Date(s.createdAt).toLocaleDateString()}
+                      from {s.submittedBy ?? "an anonymous visitor"} · {new Date(s.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
