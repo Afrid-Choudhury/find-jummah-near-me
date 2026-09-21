@@ -12,14 +12,14 @@ alter table public.jummah_times
 -- Users never edit official data — these are append-only counters.
 -- ---------------------------------------------------------------------------
 create table public.masjid_confirmations (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   masjid_id uuid not null references public.masjids (id) on delete cascade,
   created_at timestamptz not null default now()
 );
 create index masjid_confirmations_masjid_idx on public.masjid_confirmations (masjid_id);
 
 create table public.masjid_reports (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   masjid_id uuid not null references public.masjids (id) on delete cascade,
   created_at timestamptz not null default now()
 );

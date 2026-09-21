@@ -1,13 +1,11 @@
 -- Jummah NYC — initial schema
 -- Run via: supabase db push  (or paste into the SQL editor in the dashboard)
 
-create extension if not exists "uuid-ossp";
-
 -- ---------------------------------------------------------------------------
 -- masjids
 -- ---------------------------------------------------------------------------
 create table public.masjids (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
   address text not null,
@@ -31,7 +29,7 @@ create index masjids_location_idx on public.masjids (latitude, longitude);
 -- jummah_times — a masjid may hold multiple khutbahs
 -- ---------------------------------------------------------------------------
 create table public.jummah_times (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   masjid_id uuid not null references public.masjids (id) on delete cascade,
   khutbah_number integer not null default 1 check (khutbah_number between 1 and 5),
   khutbah_time time not null,

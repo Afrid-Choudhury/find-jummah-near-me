@@ -26,7 +26,7 @@ from public.masjids m;
 -- stamps last_verified_at). Official data stays admin-owned.
 -- ---------------------------------------------------------------------------
 create table public.time_suggestions (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   masjid_id uuid not null references public.masjids (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   submitted_by text not null,                      -- email snapshot for the admin queue
