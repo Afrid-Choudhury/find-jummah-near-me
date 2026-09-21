@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { Header } from "./Header";
 
 /**
@@ -11,7 +12,9 @@ export function AppShell() {
       <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col sm:border-x sm:border-line">
         <Header />
         <main className="flex-1 pb-8">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /account
+Disallow: /login
+
+Sitemap: https://findjummahnearme.com/sitemap.xml

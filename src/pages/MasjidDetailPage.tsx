@@ -5,11 +5,19 @@ import { DirectionsButton } from "@/components/masjid/DirectionsButton";
 import { KhutbahTiming } from "@/components/masjid/KhutbahTiming";
 import { SuggestTimeForm } from "@/components/masjid/SuggestTimeForm";
 import { Badge, Card, Skeleton } from "@/components/ui";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { useMasjid } from "@/hooks/useMasjids";
 
 export function MasjidDetailPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const { data: masjid, isLoading, error } = useMasjid(slug);
+
+  useDocumentMeta(
+    masjid ? `${masjid.name} — Jummah Times | Find Jummah Near Me` : "Find Jummah Near Me",
+    masjid
+      ? `Jummah times, address, and directions for ${masjid.name} in ${masjid.neighborhood ?? masjid.borough}.`
+      : undefined,
+  );
 
   if (isLoading) {
     return (
