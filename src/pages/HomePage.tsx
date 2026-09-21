@@ -61,7 +61,7 @@ export function HomePage() {
 
       {recommendation && <RecommendationCard recommendation={recommendation} />}
 
-      <section aria-label="Search" className="sticky top-14 z-10 -mx-4 bg-paper px-4 py-2">
+      <section aria-label="Search" className="sticky top-[5.5rem] z-10 -mx-4 bg-paper px-4 py-2">
         <SearchBar value={search} onChange={setSearch} />
       </section>
 

@@ -23,6 +23,20 @@ export function Header() {
           </Link>
         )}
       </div>
+      <nav
+        aria-label="Primary"
+        className="flex h-8 items-center gap-x-4 border-t border-line px-4 text-xs text-ink-muted"
+      >
+        <Link to="/" className="hover:text-night">
+          Home
+        </Link>
+        <Link to="/about" className="hover:text-night">
+          About
+        </Link>
+        <Link to="/contact" className="hover:text-night">
+          Contact
+        </Link>
+      </nav>
     </header>
   );
 }
