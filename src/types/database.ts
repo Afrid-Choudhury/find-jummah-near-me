@@ -135,6 +135,42 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      masjid_suggestions: {
+        Row: {
+          id: string;
+          name: string;
+          address: string;
+          borough: string | null;
+          neighborhood: string | null;
+          phone: string | null;
+          website: string | null;
+          /** Postgres time, e.g. "13:15:00" — no coordinates by design. */
+          jummah_time: string | null;
+          notes: string | null;
+          user_id: string | null;
+          submitted_by: string | null;
+          status: "pending" | "approved" | "rejected";
+          created_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          address: string;
+          borough?: string | null;
+          neighborhood?: string | null;
+          phone?: string | null;
+          website?: string | null;
+          jummah_time?: string | null;
+          notes?: string | null;
+          user_id?: string | null;
+          submitted_by?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          reviewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["masjid_suggestions"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       masjid_confidence: {
@@ -167,3 +203,6 @@ export type JummahTimeInsert = Database["public"]["Tables"]["jummah_times"]["Ins
 export type ConfidenceRow = Database["public"]["Views"]["masjid_confidence"]["Row"];
 export type TimeSuggestionRow = Database["public"]["Tables"]["time_suggestions"]["Row"];
 export type TimeSuggestionInsert = Database["public"]["Tables"]["time_suggestions"]["Insert"];
+export type MasjidSuggestionRow = Database["public"]["Tables"]["masjid_suggestions"]["Row"];
+export type MasjidSuggestionInsert =
+  Database["public"]["Tables"]["masjid_suggestions"]["Insert"];

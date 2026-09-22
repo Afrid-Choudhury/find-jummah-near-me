@@ -1,4 +1,10 @@
-import type { ConfidenceRow, JummahTimeRow, MasjidRow, TimeSuggestionRow } from "./database";
+import type {
+  ConfidenceRow,
+  JummahTimeRow,
+  MasjidRow,
+  MasjidSuggestionRow,
+  TimeSuggestionRow,
+} from "./database";
 
 export interface Coordinates {
   latitude: number;
@@ -33,6 +39,25 @@ export interface Masjid {
 }
 
 export type SuggestionStatus = "pending" | "approved" | "rejected";
+
+/**
+ * A proposed masjid that isn't in the directory yet. No coordinates — an
+ * admin geocodes it when creating the real listing.
+ */
+export interface MasjidSuggestion {
+  id: string;
+  name: string;
+  address: string;
+  borough: string | null;
+  neighborhood: string | null;
+  phone: string | null;
+  website: string | null;
+  jummahTime: string | null;
+  notes: string | null;
+  submittedBy: string | null;
+  status: SuggestionStatus;
+  createdAt: string;
+}
 
 /** A user-proposed Jummah time awaiting (or past) admin review. */
 export interface TimeSuggestion {
@@ -113,6 +138,23 @@ export function toMasjid(
     confirmations: confidence?.confirmations ?? 0,
     reports: confidence?.reports ?? 0,
     lastReviewedAt: row.last_reviewed_at,
+  };
+}
+
+export function toMasjidSuggestion(row: MasjidSuggestionRow): MasjidSuggestion {
+  return {
+    id: row.id,
+    name: row.name,
+    address: row.address,
+    borough: row.borough,
+    neighborhood: row.neighborhood,
+    phone: row.phone,
+    website: row.website,
+    jummahTime: row.jummah_time,
+    notes: row.notes,
+    submittedBy: row.submitted_by,
+    status: row.status,
+    createdAt: row.created_at,
   };
 }
 

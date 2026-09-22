@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui";
 import type { MasjidWithDistance } from "@/types";
 import { MasjidCard } from "./MasjidCard";
@@ -41,17 +42,31 @@ export function MasjidList({ masjids, now, isLoading, error, searchTerm }: Masji
             ? `Try a different spelling or clear "${searchTerm}".`
             : "New masjids are added regularly."}
         </p>
+        <Link
+          to="/suggest-masjid"
+          className="mt-4 inline-flex h-11 items-center rounded-full bg-night px-4 text-sm font-medium text-paper"
+        >
+          Suggest a missing masjid
+        </Link>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-3">
-      {masjids.map((masjid) => (
-        <li key={masjid.id}>
-          <MasjidCard masjid={masjid} now={now} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="space-y-3">
+        {masjids.map((masjid) => (
+          <li key={masjid.id}>
+            <MasjidCard masjid={masjid} now={now} />
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-center text-xs text-ink-muted">
+        Masjid not here?{" "}
+        <Link to="/suggest-masjid" className="font-medium text-night underline">
+          Suggest a missing masjid
+        </Link>
+      </p>
+    </>
   );
 }

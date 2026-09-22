@@ -41,6 +41,9 @@ const AboutPage = lazy(() =>
 const ContactPage = lazy(() =>
   import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })),
 );
+const SuggestMasjidPage = lazy(() =>
+  import("@/pages/SuggestMasjidPage").then((m) => ({ default: m.SuggestMasjidPage })),
+);
 
 function PageFallback() {
   return (
@@ -65,6 +68,7 @@ export const router = createBrowserRouter([
       { path: "/account", element: suspended(<AccountPage />) },
       { path: "/about", element: suspended(<AboutPage />) },
       { path: "/contact", element: suspended(<ContactPage />) },
+      { path: "/suggest-masjid", element: suspended(<SuggestMasjidPage />) },
       {
         path: "/admin/suggestions",
         element: suspended(

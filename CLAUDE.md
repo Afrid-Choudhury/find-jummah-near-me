@@ -100,6 +100,8 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
     which always attributes to the right account.
   `gh api repos/<owner>/<repo>/commits/<sha> --jq .author.login` shows which
   GitHub account a commit actually attributes to — check that first.
+  Auto-deploy on push is confirmed working since that fix (first green
+  git-triggered build: `81ed83b`).
 - **Verify a deploy by its content, not its status code.** The production
   alias silently stayed on an old deployment for hours while every check
   returned a healthy `200`. Confirm something only the new build has (a new
@@ -112,11 +114,17 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 
 ## Data
 
-- `supabase/migrations/0001_initial_schema.sql` through `0007_masjid_editors.sql`
-  — run in order. `0004_grants.sql` is the anon/authenticated table grants
-  fix (see Gotchas); `0005` is a one-off cleanup, not a schema change;
-  `0006` opens `time_suggestions` to anonymous submissions; `0007` adds
-  `masjid_editors` (see architecture rule 4).
+- `supabase/migrations/0001_initial_schema.sql` through
+  `0008_masjid_suggestions.sql` — run in order. `0004_grants.sql` is the
+  anon/authenticated table grants fix (see Gotchas); `0005` is a one-off
+  cleanup, not a schema change; `0006` opens `time_suggestions` to anonymous
+  submissions; `0007` adds `masjid_editors` (see architecture rule 4);
+  `0008` adds `masjid_suggestions` for masjids not in the directory yet.
+- The two suggestion tables cover different halves and shouldn't be confused:
+  `time_suggestions` is a schedule for a masjid **already listed**;
+  `masjid_suggestions` is a masjid we **don't list at all**. The latter
+  deliberately has no lat/lng — submitters don't know them, and the NYC bounds
+  CHECK on `masjids` would reject a guess, so an admin geocodes at approval.
 - `supabase/seed.sql` — 38 masjids (Manhattan, Queens), with phone/website.
 - `supabase/seed_batch2.sql` — 166 more (Manhattan, Queens, Brooklyn),
   sourced from Google Places, deduplicated by coordinate proximity (<60m).
@@ -160,7 +168,15 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 - Zero `jummah_times` rows exist. Every masjid renders the "No khutbah time
   listed yet" empty state. **This is now the main remaining work** —
   `/admin` already sorts masjids with no times first.
-- Latest feature: **masjid editors** (`0007`). An admin can grant a signed-up
+- Latest feature: **suggest a missing masjid** (`0008`). `/suggest-masjid`,
+  reachable from the no-results empty state and a quiet link under the masjid
+  list. Typing a name searches the existing directory and surfaces close
+  matches first, since most "missing" masjids are already listed under a
+  different spelling. Anyone may submit, signed in or not; only admins can
+  read the queue. **There's no admin review screen for these yet** — rows
+  land in `masjid_suggestions` and currently have to be read in SQL, so that
+  screen is the next piece.
+- Before that: **masjid editors** (`0007`). An admin can grant a signed-up
   user editor access to one masjid from that masjid's admin page; the editor
   then writes its `jummah_times` directly. No editor-facing UI exists yet —
   the permission model is in place, but an editor currently has no screen of
