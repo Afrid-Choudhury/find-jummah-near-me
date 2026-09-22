@@ -86,11 +86,20 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   with project access**, and on Hobby + a private repo it can't grant that
   access. Symptom: deployments sit at `Building…` forever, `vercel ls` shows
   `UNKNOWN` with no duration, and `vercel logs` returns nothing at all —
-  because the build never starts. It hits manual `vercel --prod` too, not
-  just the GitHub integration, since CLI deploys carry the same commit
-  metadata. Fixed by adding the commit-author address (`afridcho123@gmail.com`)
-  as a verified second email on the Vercel account. If deploys ever go quiet
-  again, check the commit author before suspecting the build.
+  because the build never starts. There are **two identities to keep
+  straight**, and they broke independently here:
+  - *Manual `vercel --prod`* authenticates as the Vercel user. Fixed by
+    adding the commit-author address as a verified second email on the
+    Vercel account.
+  - *Git-triggered deploys* resolve commit email → GitHub account → Vercel
+    account. `afridcho123@gmail.com` belongs to GitHub account
+    `afridchoudhury`, but the repo and Vercel connection belong to
+    **`Afrid-Choudhury`** — a different account — so those stayed blocked
+    even after the Vercel email was verified. Fixed by setting the repo's
+    commit email to `158215355+Afrid-Choudhury@users.noreply.github.com`,
+    which always attributes to the right account.
+  `gh api repos/<owner>/<repo>/commits/<sha> --jq .author.login` shows which
+  GitHub account a commit actually attributes to — check that first.
 - **Verify a deploy by its content, not its status code.** The production
   alias silently stayed on an old deployment for hours while every check
   returned a healthy `200`. Confirm something only the new build has (a new
