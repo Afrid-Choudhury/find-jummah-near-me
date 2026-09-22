@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { toMasjidSuggestion, type MasjidSuggestion } from "@/types";
+import type { MasjidSuggestionRow } from "@/types/database";
 
 /**
  * Proposals for masjids that aren't in the directory yet. Like time
@@ -47,4 +49,26 @@ export async function submitMasjidSuggestion(
     submitted_by: submitter?.email ?? contact ?? null,
   });
   if (error) throw new Error(`Could not submit suggestion: ${error.message}`);
+}
+
+/** Admin only (RLS enforced — anon has no select grant at all). */
+export async function listPendingMasjidSuggestions(): Promise<MasjidSuggestion[]> {
+  const { data, error } = await requireClient()
+    .from("masjid_suggestions")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as MasjidSuggestionRow[]).map(toMasjidSuggestion);
+}
+
+/** Admin only. Used to prefill the masjid form when approving a suggestion. */
+export async function fetchMasjidSuggestion(id: string): Promise<MasjidSuggestion | null> {
+  const { data, error } = await requireClient()
+    .from("masjid_suggestions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toMasjidSuggestion(data as unknown as MasjidSuggestionRow) : null;
 }

@@ -5,6 +5,7 @@ import { Card, Skeleton } from "@/components/ui";
 import { useMasjids } from "@/hooks/useMasjids";
 import { SearchBar } from "@/components/search/SearchBar";
 import { formatVerifiedDate } from "@/lib/jummah";
+import { listPendingMasjidSuggestions } from "@/services/masjidSuggestionService";
 import { listPendingSuggestions } from "@/services/suggestionService";
 import type { MasjidWithDistance } from "@/types";
 
@@ -19,6 +20,10 @@ export function AdminDashboardPage() {
   const [search, setSearch] = useState("");
   const { masjids, isLoading } = useMasjids({ origin: null, search });
   const pending = useQuery({ queryKey: ["pending-suggestions"], queryFn: listPendingSuggestions });
+  const pendingMasjids = useQuery({
+    queryKey: ["pending-masjid-suggestions"],
+    queryFn: listPendingMasjidSuggestions,
+  });
 
   const missingTimes = masjids
     .filter((m) => m.jummahTimes.length === 0)
@@ -40,23 +45,11 @@ export function AdminDashboardPage() {
         </Link>
       </div>
 
-      <Link to="/admin/suggestions" className="block">
-        <Card className="flex items-center justify-between p-4">
-          <div>
-            <p className="font-medium text-night">Community suggestions</p>
-            <p className="text-xs text-ink-muted">
-              {pending.isLoading
-                ? "Loading…"
-                : `${pending.data?.length ?? 0} waiting for review`}
-            </p>
-          </div>
-          <span className={`rounded-full px-3 py-1 text-sm font-semibold tabular-nums ${
-            (pending.data?.length ?? 0) > 0 ? "bg-saffron-soft text-saffron-deep" : "bg-paper-sunken text-ink-faint"
-          }`}>
-            {pending.data?.length ?? 0}
-          </span>
-        </Card>
-      </Link>
+      <SuggestionsCard
+        timeCount={pending.data?.length ?? 0}
+        masjidCount={pendingMasjids.data?.length ?? 0}
+        isLoading={pending.isLoading || pendingMasjids.isLoading}
+      />
 
       <SearchBar value={search} onChange={setSearch} placeholder="Search masjids" />
 
@@ -91,6 +84,42 @@ export function AdminDashboardPage() {
         </>
       )}
     </div>
+  );
+}
+
+/** Both review queues at a glance: suggested times and suggested masjids. */
+function SuggestionsCard({
+  timeCount,
+  masjidCount,
+  isLoading,
+}: {
+  timeCount: number;
+  masjidCount: number;
+  isLoading: boolean;
+}) {
+  const total = timeCount + masjidCount;
+  return (
+    <Link to="/admin/suggestions" className="block">
+      <Card className="flex items-center justify-between p-4">
+        <div>
+          <p className="font-medium text-night">Community suggestions</p>
+          <p className="text-xs text-ink-muted">
+            {isLoading
+              ? "Loading…"
+              : total === 0
+                ? "Nothing waiting for review"
+                : `${timeCount} time${timeCount === 1 ? "" : "s"} · ${masjidCount} new masjid${masjidCount === 1 ? "" : "s"}`}
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-sm font-semibold tabular-nums ${
+            total > 0 ? "bg-saffron-soft text-saffron-deep" : "bg-paper-sunken text-ink-faint"
+          }`}
+        >
+          {total}
+        </span>
+      </Card>
+    </Link>
   );
 }
 

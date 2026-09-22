@@ -145,6 +145,30 @@ export async function rejectSuggestion(id: string): Promise<void> {
 }
 
 /* ---------------------------------------------------------------------------
+ * Suggested new masjids (migration 0008)
+ *
+ * Approval deliberately isn't an insert here: `masjids` requires latitude and
+ * longitude under CHECK constraints and a suggestion carries neither, so the
+ * admin form creates the masjid and then closes the suggestion with these.
+ * ------------------------------------------------------------------------- */
+
+export async function approveMasjidSuggestion(id: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("masjid_suggestions")
+    .update({ status: "approved", reviewed_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`Could not close suggestion: ${error.message}`);
+}
+
+export async function rejectMasjidSuggestion(id: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("masjid_suggestions")
+    .update({ status: "rejected", reviewed_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`Could not reject suggestion: ${error.message}`);
+}
+
+/* ---------------------------------------------------------------------------
  * Masjid editors (migration 0007)
  *
  * An editor maintains one masjid's times directly, skipping the suggestion

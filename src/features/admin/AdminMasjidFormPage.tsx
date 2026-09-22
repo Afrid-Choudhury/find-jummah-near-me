@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Skeleton } from "@/components/ui";
 import { masjidKeys, useMasjids } from "@/hooks/useMasjids";
 import { BOROUGHS } from "@/lib/constants";
 import { formatTime, formatVerifiedDate } from "@/lib/jummah";
 import * as admin from "@/services/adminService";
+import { fetchMasjidSuggestion } from "@/services/masjidSuggestionService";
 import type { JummahTime, Masjid } from "@/types";
 
 interface MasjidFormState {
@@ -74,6 +75,16 @@ export function AdminMasjidFormPage() {
   const { masjids, isLoading } = useMasjids({ origin: null, search: "" });
   const existing = masjids.find((m) => m.id === id);
 
+  // Set when arriving from the review queue's "Approve" — the suggestion's
+  // values prefill the form, and saving it closes the suggestion.
+  const [searchParams] = useSearchParams();
+  const fromSuggestionId = isNew ? searchParams.get("from_suggestion") : null;
+  const suggestion = useQuery({
+    queryKey: ["masjid-suggestion", fromSuggestionId],
+    queryFn: () => fetchMasjidSuggestion(fromSuggestionId!),
+    enabled: fromSuggestionId !== null,
+  });
+
   const [form, setForm] = useState<MasjidFormState>(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -81,6 +92,23 @@ export function AdminMasjidFormPage() {
   useEffect(() => {
     if (existing) setForm(toFormState(existing));
   }, [existing]);
+
+  useEffect(() => {
+    const proposed = suggestion.data;
+    if (!proposed) return;
+    // Coordinates stay blank on purpose — they're the one thing a suggestion
+    // can't carry and the reason approval routes through this form.
+    setForm({
+      ...EMPTY_FORM,
+      name: proposed.name,
+      slug: slugify(proposed.name),
+      address: proposed.address,
+      borough: proposed.borough ?? EMPTY_FORM.borough,
+      neighborhood: proposed.neighborhood ?? "",
+      phone: proposed.phone ?? "",
+      website: proposed.website ?? "",
+    });
+  }, [suggestion.data]);
 
   const set = <K extends keyof MasjidFormState>(key: K, value: MasjidFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -117,6 +145,20 @@ export function AdminMasjidFormPage() {
     try {
       if (isNew) {
         const newId = await admin.createMasjid(payload);
+        if (fromSuggestionId) {
+          // The masjid exists now, so a failure here must not read as a
+          // failed save — surface it but keep going to the new masjid.
+          try {
+            await admin.approveMasjidSuggestion(fromSuggestionId);
+            await queryClient.invalidateQueries({ queryKey: ["pending-masjid-suggestions"] });
+          } catch (closeErr) {
+            setErrorMessage(
+              closeErr instanceof Error
+                ? `Masjid created, but the suggestion is still open: ${closeErr.message}`
+                : "Masjid created, but the suggestion is still open.",
+            );
+          }
+        }
         await refresh();
         navigate(`/admin/masjid/${newId}`, { replace: true });
       } else {
@@ -173,8 +215,38 @@ export function AdminMasjidFormPage() {
         </Link>
       </nav>
       <h1 className="font-display text-xl font-semibold text-night">
-        {isNew ? "Add masjid" : `Edit ${existing?.name}`}
+        {isNew ? (fromSuggestionId ? "Approve suggested masjid" : "Add masjid") : `Edit ${existing?.name}`}
       </h1>
+
+      {suggestion.data && (
+        <Card className="space-y-2 p-4">
+          <p className="text-sm font-medium text-night">
+            Prefilled from a community suggestion
+          </p>
+          <p className="text-xs text-ink-muted">
+            Add the coordinates below and check the slug — they&apos;re the one thing a
+            suggestion can&apos;t provide. Saving marks the suggestion approved.
+          </p>
+          {(suggestion.data.jummahTime || suggestion.data.notes) && (
+            <div className="rounded-lg bg-paper-sunken p-3">
+              <p className="text-xs font-semibold uppercase text-ink-faint">
+                Submitted too — add after saving
+              </p>
+              {suggestion.data.jummahTime && (
+                <p className="mt-1 text-sm text-night">
+                  Jummah {formatTime(suggestion.data.jummahTime)} — add it under Jummah times
+                  once the masjid exists, then verify it.
+                </p>
+              )}
+              {suggestion.data.notes && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  &ldquo;{suggestion.data.notes}&rdquo;
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
 
       <form onSubmit={(e) => void save(e)} className="space-y-3">
         <Card className="space-y-3 p-4">

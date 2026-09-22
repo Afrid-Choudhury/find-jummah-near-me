@@ -168,14 +168,19 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 - Zero `jummah_times` rows exist. Every masjid renders the "No khutbah time
   listed yet" empty state. **This is now the main remaining work** —
   `/admin` already sorts masjids with no times first.
-- Latest feature: **suggest a missing masjid** (`0008`). `/suggest-masjid`,
-  reachable from the no-results empty state and a quiet link under the masjid
-  list. Typing a name searches the existing directory and surfaces close
-  matches first, since most "missing" masjids are already listed under a
-  different spelling. Anyone may submit, signed in or not; only admins can
-  read the queue. **There's no admin review screen for these yet** — rows
-  land in `masjid_suggestions` and currently have to be read in SQL, so that
-  screen is the next piece.
+- Latest feature: **suggest a missing masjid** (`0008`), now with its admin
+  side. `/suggest-masjid` is reachable from the no-results empty state and a
+  quiet link under the masjid list; typing a name surfaces close matches
+  first, since most "missing" masjids are already listed under a different
+  spelling. `/admin/suggestions` has a second section for them, flagging
+  possible duplicates by name/address word overlap, and the admin dashboard
+  card shows both queue counts.
+  **Approval deliberately isn't an insert.** `masjids` requires latitude and
+  longitude under CHECK constraints and a suggestion carries neither, so
+  "Approve" links to `/admin/new?from_suggestion=<id>`, which prefills the
+  form and closes the suggestion when that form saves. The suggested Jummah
+  time and notes can't live on `masjids`, so the form surfaces them as a
+  reminder to add the time after creating — don't drop them silently.
 - Before that: **masjid editors** (`0007`). An admin can grant a signed-up
   user editor access to one masjid from that masjid's admin page; the editor
   then writes its `jummah_times` directly. No editor-facing UI exists yet —
