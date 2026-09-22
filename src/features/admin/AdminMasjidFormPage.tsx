@@ -5,6 +5,7 @@ import { Button, Card, Skeleton } from "@/components/ui";
 import { masjidKeys, useMasjids } from "@/hooks/useMasjids";
 import { BOROUGHS } from "@/lib/constants";
 import { formatTime, formatVerifiedDate } from "@/lib/jummah";
+import { NYC_BOUNDS, parseMapLink, type MapLinkResult } from "@/lib/mapLinks";
 import * as admin from "@/services/adminService";
 import { fetchMasjidSuggestion } from "@/services/masjidSuggestionService";
 import type { JummahTime, Masjid } from "@/types";
@@ -88,6 +89,25 @@ export function AdminMasjidFormPage() {
   const [form, setForm] = useState<MasjidFormState>(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mapLink, setMapLink] = useState("");
+  const [mapLinkResult, setMapLinkResult] = useState<MapLinkResult | null>(null);
+
+  const readMapLink = (value: string) => {
+    setMapLink(value);
+    if (!value.trim()) {
+      setMapLinkResult(null);
+      return;
+    }
+    const result = parseMapLink(value);
+    setMapLinkResult(result);
+    if (result.status === "ok") {
+      setForm((prev) => ({
+        ...prev,
+        latitude: String(result.latitude),
+        longitude: String(result.longitude),
+      }));
+    }
+  };
 
   useEffect(() => {
     if (existing) setForm(toFormState(existing));
@@ -277,6 +297,17 @@ export function AdminMasjidFormPage() {
                 onChange={(e) => set("neighborhood", e.target.value)} />
             </Field>
           </div>
+          <Field label="Paste a Google Maps link (fills in the coordinates)" htmlFor="f-maplink">
+            <input
+              id="f-maplink"
+              className={inputClass}
+              placeholder="https://www.google.com/maps/place/… or 40.750001, -73.904596"
+              value={mapLink}
+              onChange={(e) => readMapLink(e.target.value)}
+            />
+            <MapLinkMessage result={mapLinkResult} />
+          </Field>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Latitude" htmlFor="f-lat">
               <input id="f-lat" required inputMode="decimal" className={inputClass}
@@ -334,6 +365,51 @@ export function AdminMasjidFormPage() {
         </>
       )}
     </div>
+  );
+}
+
+/** Inline feedback for the pasted-link field — never blocks the manual inputs. */
+function MapLinkMessage({ result }: { result: MapLinkResult | null }) {
+  if (!result) return null;
+
+  if (result.status === "ok") {
+    return (
+      <p
+        className={`mt-1 text-xs ${
+          result.source === "center" ? "text-saffron-deep" : "text-ink-muted"
+        }`}
+      >
+        {result.source === "center"
+          ? "Filled in from the map's centre, which isn't always the pin — check it against the marker."
+          : "Coordinates filled in below."}
+      </p>
+    );
+  }
+
+  if (result.status === "short-link") {
+    return (
+      <p className="mt-1 text-xs text-red-700">
+        A short link can&apos;t be opened from here. Open it in Maps, then copy the full URL from
+        the address bar and paste that instead.
+      </p>
+    );
+  }
+
+  if (result.status === "out-of-bounds") {
+    return (
+      <p className="mt-1 text-xs text-red-700">
+        {result.latitude}, {result.longitude} is outside the area this directory covers
+        (latitude {NYC_BOUNDS.minLatitude}–{NYC_BOUNDS.maxLatitude}, longitude{" "}
+        {NYC_BOUNDS.minLongitude}–{NYC_BOUNDS.maxLongitude}). Nothing was filled in.
+      </p>
+    );
+  }
+
+  return (
+    <p className="mt-1 text-xs text-red-700">
+      No coordinates in that. Paste a full Maps URL, or type the pair directly as
+      &ldquo;40.750001, -73.904596&rdquo;.
+    </p>
   );
 }
 

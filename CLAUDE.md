@@ -181,6 +181,12 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   form and closes the suggestion when that form saves. The suggested Jummah
   time and notes can't live on `masjids`, so the form surfaces them as a
   reminder to add the time after creating — don't drop them silently.
+  The form also takes a pasted Maps link to fill the coordinates
+  (`src/lib/mapLinks.ts`, pure). It prefers `!3d/!4d` (the place itself) over
+  `@` (the map's centre, which isn't always the pin), then a `q`/`query`/`ll`
+  parameter, then a bare pair, and validates against the same NYC bounds the
+  database CHECKs. Short links can't be followed from the browser, so they're
+  detected and refused with a message rather than fetched.
 - Before that: **masjid editors** (`0007`). An admin can grant a signed-up
   user editor access to one masjid from that masjid's admin page; the editor
   then writes its `jummah_times` directly. No editor-facing UI exists yet —
