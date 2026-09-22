@@ -41,8 +41,9 @@ export interface Masjid {
 export type SuggestionStatus = "pending" | "approved" | "rejected";
 
 /**
- * A proposed masjid that isn't in the directory yet. No coordinates — an
- * admin geocodes it when creating the real listing.
+ * A proposed masjid that isn't in the directory yet. Coordinates are present
+ * only when the submitter pasted a map link we could read; an admin confirms
+ * or supplies them when creating the real listing.
  */
 export interface MasjidSuggestion {
   id: string;
@@ -52,6 +53,9 @@ export interface MasjidSuggestion {
   neighborhood: string | null;
   phone: string | null;
   website: string | null;
+  coordinates: Coordinates | null;
+  /** Raw pasted link, kept even when it didn't parse (e.g. a short link). */
+  mapLink: string | null;
   jummahTime: string | null;
   notes: string | null;
   submittedBy: string | null;
@@ -150,6 +154,11 @@ export function toMasjidSuggestion(row: MasjidSuggestionRow): MasjidSuggestion {
     neighborhood: row.neighborhood,
     phone: row.phone,
     website: row.website,
+    coordinates:
+      row.latitude !== null && row.longitude !== null
+        ? { latitude: row.latitude, longitude: row.longitude }
+        : null,
+    mapLink: row.map_link,
     jummahTime: row.jummah_time,
     notes: row.notes,
     submittedBy: row.submitted_by,

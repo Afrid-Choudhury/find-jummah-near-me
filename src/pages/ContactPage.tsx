@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const CONTACT_EMAIL = "hello@findjummahnearme.com";
 
 export function ContactPage() {
@@ -21,7 +23,11 @@ export function ContactPage() {
 
         <p>
           <strong className="font-medium text-night">A masjid that&apos;s missing?</strong>{" "}
-          Send the name and address and it&apos;ll be added.
+          <Link to="/suggest-masjid" className="font-medium text-night underline">
+            Send the name and address
+          </Link>{" "}
+          and it&apos;ll be added once someone has checked it. Email works too, if you&apos;d
+          rather.
         </p>
 
         <p>

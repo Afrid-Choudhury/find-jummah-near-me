@@ -119,7 +119,8 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   anon/authenticated table grants fix (see Gotchas); `0005` is a one-off
   cleanup, not a schema change; `0006` opens `time_suggestions` to anonymous
   submissions; `0007` adds `masjid_editors` (see architecture rule 4);
-  `0008` adds `masjid_suggestions` for masjids not in the directory yet.
+  `0008` adds `masjid_suggestions` for masjids not in the directory yet;
+  `0009` gives it nullable `latitude`/`longitude`/`map_link`.
 - The two suggestion tables cover different halves and shouldn't be confused:
   `time_suggestions` is a schedule for a masjid **already listed**;
   `masjid_suggestions` is a masjid we **don't list at all**. The latter
@@ -181,12 +182,21 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   form and closes the suggestion when that form saves. The suggested Jummah
   time and notes can't live on `masjids`, so the form surfaces them as a
   reminder to add the time after creating — don't drop them silently.
-  The form also takes a pasted Maps link to fill the coordinates
+  Both forms take a pasted Maps link to fill coordinates
   (`src/lib/mapLinks.ts`, pure). It prefers `!3d/!4d` (the place itself) over
   `@` (the map's centre, which isn't always the pin), then a `q`/`query`/`ll`
   parameter, then a bare pair, and validates against the same NYC bounds the
-  database CHECKs. Short links can't be followed from the browser, so they're
-  detected and refused with a message rather than fetched.
+  database CHECKs. Short links can't be followed from the browser and are
+  never fetched — but since `0009` the **raw pasted string is stored either
+  way** in `map_link`, so an unreadable link reaches the reviewer as something
+  they can click instead of being refused.
+  `masjid_suggestions.latitude/longitude` carry **no** CHECK, unlike
+  `masjids`: this is unverified public input, and rejecting the insert would
+  throw away a whole submission over one bad number. The real constraint still
+  applies at approval.
+  Anywhere a submitted `map_link` is rendered it goes through a protocol guard
+  — it's attacker-controlled text, and `javascript:` in an `href` would run on
+  the admin's click.
 - Before that: **masjid editors** (`0007`). An admin can grant a signed-up
   user editor access to one masjid from that masjid's admin page; the editor
   then writes its `jummah_times` directly. No editor-facing UI exists yet —

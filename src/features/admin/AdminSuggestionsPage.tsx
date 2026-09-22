@@ -18,6 +18,42 @@ const GENERIC_NAME_WORDS = new Set([
   "society", "foundation", "institute", "inc", "the", "and", "of", "jame",
 ]);
 
+/**
+ * A submitted link is untrusted text. Only http(s) may become an href —
+ * otherwise a `javascript:` URL pasted into the public form would run when an
+ * admin clicked it. Anything else is shown as plain text.
+ */
+function safeHttpUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The submitted link, clickable when it's safe to be. */
+function SubmittedMapLink({ raw }: { raw: string }) {
+  const href = safeHttpUrl(raw);
+  return (
+    <div>
+      <p className="text-xs text-ink-faint">Submitted map link</p>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="break-all text-sm font-medium text-night underline"
+        >
+          {raw}
+        </a>
+      ) : (
+        <p className="break-all text-sm text-ink-muted">{raw}</p>
+      )}
+    </div>
+  );
+}
+
 interface MasjidSuggestionCardProps {
   suggestion: MasjidSuggestion;
   similar: Masjid[];
@@ -62,7 +98,17 @@ function MasjidSuggestionCard({
         {detail("Jummah time", suggestion.jummahTime ? formatTime(suggestion.jummahTime) : null)}
         {detail("Phone", suggestion.phone)}
         {detail("Website", suggestion.website)}
+        {detail(
+          "Coordinates",
+          suggestion.coordinates
+            ? `${suggestion.coordinates.latitude}, ${suggestion.coordinates.longitude}`
+            : suggestion.mapLink
+              ? "Link didn't resolve — open it below"
+              : "Not provided",
+        )}
       </dl>
+
+      {suggestion.mapLink && <SubmittedMapLink raw={suggestion.mapLink} />}
 
       {suggestion.notes && (
         <p className="text-sm text-ink-muted">&ldquo;{suggestion.notes}&rdquo;</p>

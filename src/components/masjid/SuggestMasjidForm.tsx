@@ -5,12 +5,51 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMasjids } from "@/hooks/useMasjids";
 import { BOROUGHS } from "@/lib/constants";
+import { parseMapLink, type MapLinkResult } from "@/lib/mapLinks";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { submitMasjidSuggestion } from "@/services/masjidSuggestionService";
 
 /** Below this, a name fragment matches too much to be a useful warning. */
 const MIN_MATCH_LENGTH = 3;
 const MAX_MATCHES_SHOWN = 4;
+
+/**
+ * Feedback for the pasted link. Nothing here blocks submitting: the raw text
+ * is stored either way, so a link we can't read is passed to the reviewer
+ * rather than held against the person sending it.
+ */
+function MapLinkNote({ result }: { result: MapLinkResult | null }) {
+  if (!result) return null;
+
+  if (result.status === "ok") {
+    return (
+      <p className={`mt-1 text-xs ${result.source === "center" ? "text-saffron-deep" : "text-ink-muted"}`}>
+        Found a location: {result.latitude}, {result.longitude}
+        {result.source === "center"
+          ? " — that's the map's centre rather than the pin, so it may be a little off. Sending it anyway is fine."
+          : "."}
+      </p>
+    );
+  }
+
+  if (result.status === "out-of-bounds") {
+    return (
+      <p className="mt-1 text-xs text-saffron-deep">
+        That points outside New York City, so we haven&apos;t used the coordinates — the link
+        still gets sent for someone to check.
+      </p>
+    );
+  }
+
+  // Short links need a redirect the page can't follow, and anything else
+  // unreadable is equally harmless — we keep the text and move on.
+  return (
+    <p className="mt-1 text-xs text-ink-muted">
+      We couldn&apos;t read a location from that, which is fine — the link is sent along as-is
+      and checked by hand.
+    </p>
+  );
+}
 
 /**
  * Propose a masjid that isn't listed. Most "missing" masjids turn out to be
@@ -28,6 +67,8 @@ export function SuggestMasjidForm() {
   const [jummahTime, setJummahTime] = useState("");
   const [notes, setNotes] = useState("");
   const [contact, setContact] = useState("");
+  const [mapLink, setMapLink] = useState("");
+  const [mapLinkResult, setMapLinkResult] = useState<MapLinkResult | null>(null);
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -59,10 +100,16 @@ export function SuggestMasjidForm() {
     );
   }
 
+  const readMapLink = (value: string) => {
+    setMapLink(value);
+    setMapLinkResult(value.trim() ? parseMapLink(value) : null);
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setState("sending");
     setError(null);
+    const parsed = mapLinkResult?.status === "ok" ? mapLinkResult : null;
     try {
       await submitMasjidSuggestion(
         {
@@ -72,6 +119,11 @@ export function SuggestMasjidForm() {
           neighborhood: neighborhood.trim() || null,
           phone: phone.trim() || null,
           website: website.trim() || null,
+          latitude: parsed?.latitude ?? null,
+          longitude: parsed?.longitude ?? null,
+          // Kept even when it didn't parse — a short link an admin can open
+          // is far more useful than nothing.
+          mapLink: mapLink.trim() || null,
           jummahTime: jummahTime || null,
           notes: notes.trim() || null,
         },
@@ -141,6 +193,20 @@ export function SuggestMasjidForm() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
+        </div>
+
+        <div>
+          <label htmlFor="sm-maplink" className={labelClass}>
+            Google Maps link
+          </label>
+          <input
+            id="sm-maplink"
+            className={inputClass}
+            placeholder="Paste a link to the place, if you have one"
+            value={mapLink}
+            onChange={(e) => readMapLink(e.target.value)}
+          />
+          <MapLinkNote result={mapLinkResult} />
         </div>
 
         <div className="grid grid-cols-2 gap-2">

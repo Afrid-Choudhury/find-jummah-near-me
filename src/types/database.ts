@@ -144,7 +144,12 @@ export interface Database {
           neighborhood: string | null;
           phone: string | null;
           website: string | null;
-          /** Postgres time, e.g. "13:15:00" — no coordinates by design. */
+          /** Nullable and unconstrained — unverified input (see 0009). */
+          latitude: number | null;
+          longitude: number | null;
+          /** The raw pasted map link, kept whether or not it parsed. */
+          map_link: string | null;
+          /** Postgres time, e.g. "13:15:00". */
           jummah_time: string | null;
           notes: string | null;
           user_id: string | null;
@@ -161,6 +166,9 @@ export interface Database {
           neighborhood?: string | null;
           phone?: string | null;
           website?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          map_link?: string | null;
           jummah_time?: string | null;
           notes?: string | null;
           user_id?: string | null;

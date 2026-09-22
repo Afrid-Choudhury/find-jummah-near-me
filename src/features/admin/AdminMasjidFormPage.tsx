@@ -116,8 +116,9 @@ export function AdminMasjidFormPage() {
   useEffect(() => {
     const proposed = suggestion.data;
     if (!proposed) return;
-    // Coordinates stay blank on purpose — they're the one thing a suggestion
-    // can't carry and the reason approval routes through this form.
+    // Coordinates come through only when the submitter pasted a link we could
+    // read; otherwise they stay blank for the admin to fill in. Either way
+    // they remain editable — a submitted pin still wants checking.
     setForm({
       ...EMPTY_FORM,
       name: proposed.name,
@@ -127,6 +128,8 @@ export function AdminMasjidFormPage() {
       neighborhood: proposed.neighborhood ?? "",
       phone: proposed.phone ?? "",
       website: proposed.website ?? "",
+      latitude: proposed.coordinates ? String(proposed.coordinates.latitude) : "",
+      longitude: proposed.coordinates ? String(proposed.coordinates.longitude) : "",
     });
   }, [suggestion.data]);
 
@@ -180,7 +183,15 @@ export function AdminMasjidFormPage() {
           }
         }
         await refresh();
-        navigate(`/admin/masjid/${newId}`, { replace: true });
+        // A submitted time rides along as a draft for the times editor — it is
+        // never written automatically. Public data stays admin-entered.
+        const submittedTime = suggestion.data?.jummahTime;
+        navigate(
+          submittedTime
+            ? `/admin/masjid/${newId}?prefill_time=${encodeURIComponent(submittedTime.slice(0, 5))}`
+            : `/admin/masjid/${newId}`,
+          { replace: true },
+        );
       } else {
         await admin.updateMasjid(id, payload);
         await refresh();
@@ -244,18 +255,23 @@ export function AdminMasjidFormPage() {
             Prefilled from a community suggestion
           </p>
           <p className="text-xs text-ink-muted">
-            Add the coordinates below and check the slug — they&apos;re the one thing a
-            suggestion can&apos;t provide. Saving marks the suggestion approved.
+            {suggestion.data.coordinates
+              ? "Coordinates came from the submitted link — check them against the map before saving."
+              : "Add the coordinates below and check the slug. Saving marks the suggestion approved."}
           </p>
+          {suggestion.data.mapLink && (
+            <div className="rounded-lg bg-paper-sunken p-3">
+              <p className="text-xs font-semibold uppercase text-ink-faint">Submitted map link</p>
+              <SubmittedLink raw={suggestion.data.mapLink} />
+            </div>
+          )}
           {(suggestion.data.jummahTime || suggestion.data.notes) && (
             <div className="rounded-lg bg-paper-sunken p-3">
-              <p className="text-xs font-semibold uppercase text-ink-faint">
-                Submitted too — add after saving
-              </p>
+              <p className="text-xs font-semibold uppercase text-ink-faint">Also submitted</p>
               {suggestion.data.jummahTime && (
                 <p className="mt-1 text-sm text-night">
-                  Jummah {formatTime(suggestion.data.jummahTime)} — add it under Jummah times
-                  once the masjid exists, then verify it.
+                  Jummah {formatTime(suggestion.data.jummahTime)} — carried into the times
+                  editor as a draft after you save; you still add it yourself.
                 </p>
               )}
               {suggestion.data.notes && (
@@ -360,11 +376,42 @@ export function AdminMasjidFormPage() {
       {!isNew && existing && (
         <>
           <ReviewCard masjid={existing} onChanged={() => void refresh()} />
-          <JummahTimesEditor masjid={existing} onChanged={() => void refresh()} />
+          <JummahTimesEditor
+            masjid={existing}
+            onChanged={() => void refresh()}
+            prefillTime={searchParams.get("prefill_time")}
+          />
           <EditorsCard masjid={existing} />
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * A submitted link is untrusted text, so only http(s) becomes an href — a
+ * `javascript:` URL pasted into the public form must not be clickable here.
+ */
+function SubmittedLink({ raw }: { raw: string }) {
+  let href: string | null = null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol === "http:" || url.protocol === "https:") href = url.href;
+  } catch {
+    href = null;
+  }
+
+  return href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="mt-1 block break-all text-sm font-medium text-night underline"
+    >
+      {raw}
+    </a>
+  ) : (
+    <p className="mt-1 break-all text-sm text-ink-muted">{raw}</p>
   );
 }
 
@@ -449,14 +496,22 @@ const toInputTime = (t: string | null) => (t ? t.slice(0, 5) : "");
 function JummahTimesEditor({
   masjid,
   onChanged,
+  prefillTime = null,
 }: {
   masjid: Masjid;
   onChanged: () => void;
+  /** A community-submitted time, seeded as a draft — never saved for you. */
+  prefillTime?: string | null;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState<TimeDraft>({ khutbahTime: "", iqamahTime: "", language: "", notes: "" });
-  const [draft, setDraft] = useState<TimeDraft>({ khutbahTime: "13:00", iqamahTime: "", language: "English", notes: "" });
+  const [draft, setDraft] = useState<TimeDraft>({
+    khutbahTime: prefillTime || "13:00",
+    iqamahTime: "",
+    language: "English",
+    notes: "",
+  });
 
   const run = async (action: () => Promise<void>) => {
     setError(null);
@@ -543,6 +598,12 @@ function JummahTimesEditor({
 
       <div className="rounded-lg bg-paper-sunken p-3">
         <p className="text-sm font-medium text-night">Add khutbah {nextNumber}</p>
+        {prefillTime && masjid.jummahTimes.length === 0 && (
+          <p className="mt-1 text-xs text-saffron-deep">
+            Prefilled with the submitted time — check it, then add it. Nothing was saved
+            automatically.
+          </p>
+        )}
         <div className="mt-2">
           <DraftFields value={draft} onChange={setDraft} />
         </div>

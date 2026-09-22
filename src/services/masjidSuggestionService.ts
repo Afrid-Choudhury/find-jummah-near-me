@@ -21,6 +21,11 @@ export interface NewMasjidSuggestion {
   neighborhood: string | null;
   phone: string | null;
   website: string | null;
+  /** Only set when a pasted link parsed; null otherwise. */
+  latitude: number | null;
+  longitude: number | null;
+  /** The raw pasted link, stored whether or not it parsed. */
+  mapLink: string | null;
   /** "HH:MM" from <input type="time">, or null if they don't know it. */
   jummahTime: string | null;
   notes: string | null;
@@ -43,6 +48,9 @@ export async function submitMasjidSuggestion(
     neighborhood: input.neighborhood,
     phone: input.phone,
     website: input.website,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    map_link: input.mapLink,
     jummah_time: input.jummahTime,
     notes: input.notes,
     user_id: submitter?.id ?? null,
