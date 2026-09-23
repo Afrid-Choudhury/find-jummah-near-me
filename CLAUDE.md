@@ -213,7 +213,10 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   retracts a time: hidden from the site and from `recommendBestJummah`, kept
   in the database and surfaced at the top of the admin dashboard and in the
   masjid's times editor. Verified end-to-end against the live project,
-  including that a retracted row persists rather than being deleted.
+  including that a retracted row persists rather than being deleted, and
+  again on the production deployment of `ce21120` — all three states, plus a
+  real anonymous 👍 cast through the deployed build landing as a
+  per-schedule vote without touching the masjid-level counters.
   `RecommendationCard` states when its pick rests on an unverified time and
   offers the masjid's phone number.
 - Before that: **suggest a missing masjid** (`0008`), with its admin
