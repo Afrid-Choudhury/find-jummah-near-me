@@ -177,14 +177,28 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 
 ## Where things stand (September 2026 — prune this section once it is stale)
 
-- **Live in production:** https://find-jummah-near-me.vercel.app (Vercel
-  project `find-jummah/find-jummah-near-me`), auto-deploying on push to
-  `main` via a GitHub App connection (had to be granted at the **Team**
-  level — `FindJummah` — not the personal account; a personal "Login
-  Connection" alone isn't enough for the git integration). Custom domain
-  `findjummahnearme.com` is planned but not yet connected; it's already
-  pre-registered in Supabase's Auth redirect allow-list so it'll work the
-  moment DNS points at Vercel.
+- **Live in production:** https://findjummahnearme.com (Vercel project
+  `find-jummah/find-jummah-near-me`), auto-deploying on push to `main` via a
+  GitHub App connection (had to be granted at the **Team** level —
+  `FindJummah` — not the personal account; a personal "Login Connection"
+  alone isn't enough for the git integration).
+- **Domain:** bought 2026-09-23 **through Vercel** (Vercel is the registrar
+  and runs DNS; renews 2027-09-23, $11.25/yr). The apex is primary; `www`
+  301s to it via a host-matched redirect in `vercel.json` (in code rather
+  than the dashboard so it's versioned). `find-jummah-near-me.vercel.app`
+  still serves the site un-redirected — every page instead declares
+  `https://findjummahnearme.com<path>` as its canonical URL and `og:url`
+  (`useCanonicalUrl` in `AppShell`, origin in `src/lib/site.ts`). The
+  canonical is set from JS, deliberately *not* in `index.html`: that file is
+  served for every route, so a static canonical would claim every page is
+  the homepage. Supabase Auth `site_url` points at the domain (changed with a
+  scoped `PATCH`, not `config push`); the vercel.app URL stays in the
+  redirect allow-list.
+- **`hello@findjummahnearme.com` (on the Contact page) has no mailbox yet.**
+  Vercel DNS doesn't host email — mail to it bounces until forwarding (e.g.
+  ImprovMX, or an MX record to a provider) is set up.
+- **Search Console / Bing Webmaster Tools not set up yet** — needs a DNS TXT
+  record, which goes in Vercel's DNS for the domain.
 - **Supabase is live**, not just migrated locally: `FindjumahMVP` project,
   204 masjids seeded, RLS + grants verified end-to-end (anon read of the
   masjid list and an anon confirmation vote round-tripping through the
@@ -193,8 +207,6 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   (gitignored) and in all three Vercel environments (production/preview/
   development). `VITE_`-prefixed env vars are baked in at **build** time —
   they must exist before the build runs, or the site ships with mock data.
-- Supabase Auth `site_url` / redirect allow-list point at the Vercel URL +
-  localhost + the planned custom domain.
 - `admin_users` has one row: `afridchoudhury.job@gmail.com`. `/admin` is
   reachable and gated correctly (verified `AdminGuard` redirects signed-out
   visitors to `/login`).

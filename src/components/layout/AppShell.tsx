@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { useCanonicalUrl } from "@/hooks/useCanonicalUrl";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
@@ -8,6 +9,8 @@ import { Header } from "./Header";
  * larger screens. All routed pages render inside <Outlet />.
  */
 export function AppShell() {
+  useCanonicalUrl();
+
   return (
     <div className="min-h-dvh bg-paper">
       <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col sm:border-x sm:border-line">
