@@ -545,7 +545,13 @@ function JummahTimesEditor({
       setEditingId(null);
     });
 
-  const nextNumber = masjid.jummahTimes.reduce((max, t) => Math.max(max, t.khutbahNumber), 0) + 1;
+  // Retracted rows still occupy their khutbah number — unique(masjid_id,
+  // khutbah_number) means ignoring them would collide on insert.
+  const nextNumber =
+    [...masjid.jummahTimes, ...masjid.retractedTimes].reduce(
+      (max, t) => Math.max(max, t.khutbahNumber),
+      0,
+    ) + 1;
   return (
     <Card className="space-y-4 p-4">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Jummah times</h2>
@@ -591,10 +597,45 @@ function JummahTimesEditor({
             )}
           </li>
         ))}
-        {masjid.jummahTimes.length === 0 && (
+        {masjid.jummahTimes.length === 0 && masjid.retractedTimes.length === 0 && (
           <li className="text-sm text-ink-muted">No times yet — add the first below.</li>
         )}
       </ul>
+
+      {masjid.retractedTimes.length > 0 && (
+        <div className="rounded-lg border border-red-700/40 bg-paper-sunken p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+            Hidden — taken down by the community
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            Not shown on the site and not used for recommendations. Fix the time and mark it
+            verified to bring it back, or remove it.
+          </p>
+          <ul className="mt-2 space-y-2">
+            {masjid.retractedTimes.map((time) => (
+              <li key={time.id} className="rounded-lg border border-line bg-paper-raised p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold tabular-nums text-night">
+                    Khutbah {time.khutbahNumber} · {formatTime(time.khutbahTime)}
+                  </p>
+                  <div className="flex shrink-0 gap-3 text-xs">
+                    <button type="button" onClick={() => startEdit(time)} className="text-night underline">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => void run(() => admin.deleteJummahTime(time.id))}
+                      className="text-red-700 underline">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  👎 {time.reports} · 👍 {time.confirmations}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-lg bg-paper-sunken p-3">
         <p className="text-sm font-medium text-night">Add khutbah {nextNumber}</p>

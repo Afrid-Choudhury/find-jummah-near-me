@@ -19,16 +19,32 @@ Read `BUILD_GUIDE.md` for the full phase-by-phase design rationale.
    `(data, now)` — no `Date.now()` inside. That is what makes countdowns and
    the recommendation engine testable, and why components take `now` as a
    prop or read the `useNow` hook.
-4. **Users signal, admins write — plus approved editors, scoped to one
-   masjid.** Community input is append-only (`masjid_confirmations`,
-   `masjid_reports`, `time_suggestions`) and anyone may submit, signed in or
-   not. Official data is written by admins, and — since `0007` — by a
-   `masjid_editors` grant: an imam or volunteer an admin has approved, who
-   may write `jummah_times` for **their own masjid only**, skipping the
-   suggestion queue. Editors cannot touch `masjids`, cannot write another
-   masjid's times, and cannot grant access to anyone (including themselves);
-   granting is admin-only and happens in the admin dashboard. RLS is the real
-   security boundary — not hidden UI.
+4. **Tiered trust: the label must match the evidence.** Data carries its own
+   provenance and the UI is obliged to show it. Three tiers write
+   `jummah_times`, all still through RLS — only `is_admin()` or an approved
+   `masjid_editors` grant can write the table, so the tier is a property of
+   the *row*, not a loophole in who may insert:
+   - **Verified** — `source 'admin'` with `last_verified_at` set. An admin
+     personally confirmed it. Only this tier gets saffron and a "Verified
+     <date>" stamp.
+   - **Community** — `source 'community'`, `last_verified_at` null. Published
+     from a suggestion because it looked plausible, *not* because anyone
+     checked. Shown with a quieter, dashed treatment, labelled as unverified,
+     and carrying its own 👍/👎 controls. Marking one verified promotes it to
+     the tier above; that's what `markTimeVerified` is for.
+   - **Retracted** — a community time the crowd rejected (`reports >= 2` and
+     `reports > confirmations`, see `isTimeRetracted`). Hidden from the public
+     site and from the recommendation engine, never deleted: the mapper keeps
+     it out of `Masjid.jummahTimes` and puts it in `retractedTimes` for the
+     admin to fix or remove. Verified times never auto-hide.
+
+   Everything else is unchanged: community input is still append-only
+   (`masjid_confirmations`, `masjid_reports`, `time_suggestions`,
+   `masjid_suggestions`), anyone may submit signed in or not, and editors
+   (since `0007`) may write only their own masjid and cannot grant access to
+   anyone including themselves. **RLS is the real security boundary — not
+   hidden UI.** What changed is that "unverified" is now a state the UI can
+   show honestly, rather than a reason to show nothing.
 5. **Design tokens, never hex codes.** All colors live in
    `tailwind.config.ts`. Saffron is reserved for the things people act on:
    Jummah times, countdowns, Directions buttons.
@@ -36,8 +52,17 @@ Read `BUILD_GUIDE.md` for the full phase-by-phase design rationale.
 ## Accuracy is the product
 
 Never invent a Jummah time, and never hard-code one — not in seed files, not
-in `src/data/mockMasjids.ts` (its empty schedules are deliberate). Times are
-entered and verified through `/admin`, which stamps `last_verified_at`.
+in `src/data/mockMasjids.ts` (its empty schedules are deliberate).
+
+Since `0010` this does **not** mean every published time was personally
+checked — it means **the UI's confidence must match the data's confidence**.
+A community time may be public, but never dressed as verified: no saffron, no
+"Verified" stamp, and the recommendation card must say so rather than let
+"leave within 4 minutes" imply certainty. `last_verified_at` keeps its narrow
+meaning — an admin confirmed this themselves — and nothing sets it
+automatically, which is why approving a suggested time prefills a draft for
+the admin to commit instead of writing the row for them.
+
 Anything derived rather than listed by a masjid must be labelled an estimate
 in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
 
@@ -120,7 +145,12 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   cleanup, not a schema change; `0006` opens `time_suggestions` to anonymous
   submissions; `0007` adds `masjid_editors` (see architecture rule 4);
   `0008` adds `masjid_suggestions` for masjids not in the directory yet;
-  `0009` gives it nullable `latitude`/`longitude`/`map_link`.
+  `0009` gives it nullable `latitude`/`longitude`/`map_link`; `0010` adds
+  `jummah_times.source`, per-schedule votes (`jummah_time_id` on both vote
+  tables) and the `jummah_time_confidence` view — see architecture rule 4.
+- `0010` also **narrowed `masjid_confidence`** to `jummah_time_id is null`.
+  Without that, a vote on one schedule would also inflate the listing's
+  counters and be counted twice.
 - The two suggestion tables cover different halves and shouldn't be confused:
   `time_suggestions` is a schedule for a masjid **already listed**;
   `masjid_suggestions` is a masjid we **don't list at all**. The latter
@@ -166,10 +196,27 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   visitors to `/login`).
 - CI (`.github/workflows/ci.yml`) runs `typecheck` + `build` on every PR
   and push to `main`, green as of the last push.
-- Zero `jummah_times` rows exist. Every masjid renders the "No khutbah time
-  listed yet" empty state. **This is now the main remaining work** —
-  `/admin` already sorts masjids with no times first.
-- Latest feature: **suggest a missing masjid** (`0008`), now with its admin
+- **Three** `jummah_times` rows exist as of 2026-09-22 (Baitul Ateeq, Masjid
+  Hanafia, Woodside Baitul Jannah) — all `source 'admin'` and verified, all
+  entered by hand through `/admin`. 201 masjids still show the empty state,
+  so entering times remains the main work; `/admin` sorts masjids with no
+  times first. `0010` exists precisely to make that backlog tractable:
+  plausible suggestions can now go live labelled unverified instead of
+  waiting on a phone call.
+- Latest feature: **tiered community trust** (`0010`). `/admin/suggestions`
+  now offers two publish paths, deliberately styled so they can't be
+  conflated: "Verify & publish" (saffron, stamps `last_verified_at`, says you
+  checked it) and "Publish as community time" (dashed, `source 'community'`,
+  `last_verified_at` null). Public schedules render in three states —
+  verified / community-confirmed / community-unconfirmed — with per-schedule
+  👍/👎 on the community ones. Two or more reports outweighing confirmations
+  retracts a time: hidden from the site and from `recommendBestJummah`, kept
+  in the database and surfaced at the top of the admin dashboard and in the
+  masjid's times editor. Verified end-to-end against the live project,
+  including that a retracted row persists rather than being deleted.
+  `RecommendationCard` states when its pick rests on an unverified time and
+  offers the masjid's phone number.
+- Before that: **suggest a missing masjid** (`0008`), with its admin
   side. `/suggest-masjid` is reachable from the no-results empty state and a
   quiet link under the masjid list; typing a name surfaces close matches
   first, since most "missing" masjids are already listed under a different

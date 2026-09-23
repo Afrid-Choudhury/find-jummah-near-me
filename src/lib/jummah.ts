@@ -206,6 +206,12 @@ export interface Recommendation {
   arrivalIfLeavingNow: Date;
   /** Human summary, e.g. "You should arrive before the khutbah." */
   summary: string;
+  /**
+   * True when this pick rests on a community time nobody has verified. The
+   * card must say so — "leave within 4 minutes" reads as certainty, and it
+   * shouldn't when the underlying time is someone's word.
+   */
+  isUnverified: boolean;
 }
 
 /**
@@ -216,6 +222,11 @@ export interface Recommendation {
  * (catch Jummah as soon as possible) and break ties by shortest travel.
  * If a nearby khutbah has already started, later khutbahs — including a
  * masjid's second khutbah — naturally become the recommendation.
+ *
+ * Community times are eligible: excluding them would leave the engine with
+ * almost nothing to work with. The resulting `isUnverified` flag is how the
+ * card qualifies its confidence. Times the crowd retracted never arrive here
+ * at all — the mapper keeps them out of `masjid.jummahTimes`.
  *
  * Returns null when it isn't Friday, location is unknown, or nothing is
  * reachable anymore.
@@ -255,6 +266,7 @@ export function recommendBestJummah(
           leaveWithinMinutes >= 5
             ? "You should arrive before the khutbah."
             : "Leave now to arrive before the khutbah.",
+        isUnverified: time.source === "community" && time.lastVerifiedAt === null,
       };
 
       const better =

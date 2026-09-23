@@ -33,6 +33,7 @@ function m(
     capacity: null,
     hasWomensSection: false,
     jummahTimes: [],
+    retractedTimes: [],
     lastVerifiedAt: null,
     confirmations: 0,
     reports: 0,

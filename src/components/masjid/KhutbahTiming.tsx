@@ -10,6 +10,7 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { JummahTime, Masjid } from "@/types";
+import { ConfidenceVote } from "./ConfidenceVote";
 
 interface KhutbahTimingProps {
   masjid: Masjid;
@@ -64,6 +65,7 @@ export function KhutbahTiming({ masjid, now: fixedNow, children, onSuggestTime }
                 time={time}
                 label={shiftLabel(time, times.length)}
                 timeline={buildKhutbahTimeline(time, now)}
+                masjidId={masjid.id}
               />
             ))}
           </ul>
@@ -85,17 +87,24 @@ interface KhutbahShiftProps {
   time: JummahTime;
   label: string;
   timeline: KhutbahTimeline;
+  masjidId: string;
 }
 
-function KhutbahShift({ time, label, timeline }: KhutbahShiftProps) {
+function KhutbahShift({ time, label, timeline, masjidId }: KhutbahShiftProps) {
   const { iqamahAt, khutbahMinutes, phase } = timeline;
   const isLive = phase === "khutbah" || phase === "prayer";
+  const isCommunity = time.source === "community";
 
   return (
     <li
       className={cn(
         "rounded-lg border p-3",
+        // Saffron stays reserved for times an admin confirmed. A community
+        // time gets a dashed edge instead: legible and not apologetic, but
+        // never mistakable for a verified one at a glance.
+        isCommunity && "border-dashed bg-paper-sunken/40",
         isLive ? "border-saffron bg-saffron-soft/25" : "border-line",
+        isCommunity && isLive && "border-dashed",
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -110,7 +119,7 @@ function KhutbahShift({ time, label, timeline }: KhutbahShiftProps) {
           clock={formatClock(timeline.startsAt)}
           title="Khutbah begins"
           note={time.language ? `${time.language} khutbah` : null}
-          tone="gold"
+          tone={isCommunity ? "ink" : "gold"}
         />
         <TimelineStep
           clock={iqamahAt ? formatClock(iqamahAt) : "—"}
@@ -132,12 +141,54 @@ function KhutbahShift({ time, label, timeline }: KhutbahShiftProps) {
       </ol>
 
       {time.notes && <p className="mt-1 text-xs text-ink-muted">{time.notes}</p>}
-      <p className="mt-1 text-xs text-ink-faint">
-        {time.lastVerifiedAt
-          ? `Verified ${formatVerifiedDate(time.lastVerifiedAt)}`
-          : "Not yet verified"}
-      </p>
+
+      <Provenance time={time} />
+
+      {isCommunity && (
+        <div className="mt-3 border-t border-line pt-3">
+          <ConfidenceVote masjidId={masjidId} jummahTimeId={time.id} />
+        </div>
+      )}
     </li>
+  );
+}
+
+/**
+ * Says plainly where a time came from and how much weight to put on it. The
+ * three states are the whole point of the tiered model: the wording has to
+ * track the data, never flatter it.
+ */
+function Provenance({ time }: { time: JummahTime }) {
+  if (time.source === "admin" && time.lastVerifiedAt) {
+    return (
+      <p className="mt-1 text-xs text-ink-faint">
+        Verified {formatVerifiedDate(time.lastVerifiedAt)}
+      </p>
+    );
+  }
+
+  if (time.source === "admin") {
+    return <p className="mt-1 text-xs text-ink-faint">Not yet verified</p>;
+  }
+
+  const confirmed = time.confirmations > 0 && time.confirmations >= time.reports;
+  if (confirmed) {
+    return (
+      <p className="mt-1 text-xs text-ink-muted">
+        Community time · confirmed by {time.confirmations}{" "}
+        {time.confirmations === 1 ? "person" : "people"}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-1">
+      <p className="text-xs text-ink-muted">Community time · not yet confirmed</p>
+      <p className="mt-0.5 text-xs text-ink-faint">
+        Sent in by someone in the community and not checked by us. If you&apos;ve prayed here,
+        confirming it helps everyone else.
+      </p>
+    </div>
   );
 }
 

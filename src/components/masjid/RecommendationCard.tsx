@@ -17,8 +17,16 @@ interface RecommendationCardProps {
  * latest departure, estimated arrival, and one big Directions button.
  */
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
-  const { masjid, time, travel, leaveWithinMinutes, arrivalIfLeavingNow, summary } =
-    recommendation;
+  const {
+    masjid,
+    time,
+    travel,
+    leaveWithinMinutes,
+    arrivalIfLeavingNow,
+    summary,
+    isUnverified,
+  } = recommendation;
+  const tel = masjid.phone ? `tel:${masjid.phone.replace(/[^+\d]/g, "")}` : null;
 
   return (
     <section
@@ -60,6 +68,28 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
         </dl>
 
         <p className="text-sm text-paper/80">{summary}</p>
+
+        {/* The numbers above read as certainty. When the time underneath them
+            is unverified, say so here rather than let that stand. */}
+        {isUnverified && (
+          <div className="rounded-lg border border-paper/25 bg-paper/10 px-3 py-2">
+            <p className="text-sm font-medium text-paper">
+              This time came from the community and hasn&apos;t been verified.
+            </p>
+            <p className="mt-0.5 text-sm text-paper/70">
+              Worth calling ahead before you travel.
+              {tel ? "" : " No phone number listed for this masjid."}
+            </p>
+            {tel && (
+              <a
+                href={tel}
+                className="mt-2 inline-flex h-11 items-center rounded-full bg-paper/15 px-4 text-sm font-medium text-paper"
+              >
+                Call {masjid.phone}
+              </a>
+            )}
+          </div>
+        )}
 
         <DirectionsButton masjid={masjid} className="w-full" />
       </div>

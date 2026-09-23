@@ -324,12 +324,34 @@ export function AdminSuggestionsPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button size="sm" disabled={busy} className="flex-1"
-                      onClick={() => void act(s.id, () => admin.approveSuggestion(s))}>
-                      {current ? "Approve & replace" : "Approve & publish"}
-                    </Button>
-                    <Button size="sm" variant="secondary" disabled={busy}
+                  {/* Two publish paths, deliberately not interchangeable: one
+                      claims you checked it, the other says the opposite. */}
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-saffron bg-saffron-soft/25 p-3">
+                      <Button size="sm" disabled={busy} className="w-full"
+                        onClick={() => void act(s.id, () => admin.approveSuggestion(s))}>
+                        {current ? "Verify & replace" : "Verify & publish"}
+                      </Button>
+                      <p className="mt-1.5 text-xs text-ink-muted">
+                        Says <strong className="font-medium text-night">you</strong> confirmed
+                        this — stamps it verified and shows it as a verified time.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-dashed border-line bg-paper-sunken/40 p-3">
+                      <Button size="sm" variant="secondary" disabled={busy} className="w-full"
+                        onClick={() =>
+                          void act(s.id, () => admin.publishSuggestionAsCommunityTime(s))
+                        }>
+                        Publish as community time
+                      </Button>
+                      <p className="mt-1.5 text-xs text-ink-muted">
+                        Goes live labelled unverified, for visitors to confirm or dispute. Use
+                        when it looks plausible but you haven&apos;t checked.
+                      </p>
+                    </div>
+
+                    <Button size="sm" variant="ghost" disabled={busy} className="w-full"
                       onClick={() => void act(s.id, () => admin.rejectSuggestion(s.id))}>
                       Reject
                     </Button>

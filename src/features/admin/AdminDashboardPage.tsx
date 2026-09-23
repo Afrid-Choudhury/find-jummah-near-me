@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, Skeleton } from "@/components/ui";
 import { useMasjids } from "@/hooks/useMasjids";
 import { SearchBar } from "@/components/search/SearchBar";
-import { formatVerifiedDate } from "@/lib/jummah";
+import { formatTime, formatVerifiedDate } from "@/lib/jummah";
 import { listPendingMasjidSuggestions } from "@/services/masjidSuggestionService";
 import { listPendingSuggestions } from "@/services/suggestionService";
 import type { MasjidWithDistance } from "@/types";
@@ -25,6 +25,12 @@ export function AdminDashboardPage() {
     queryFn: listPendingMasjidSuggestions,
   });
 
+  // Community times the crowd rejected. They're kept out of `jummahTimes` so
+  // the public never sees them, which is exactly why they need surfacing here.
+  const retracted = masjids.flatMap((masjid) =>
+    masjid.retractedTimes.map((time) => ({ masjid, time })),
+  );
+
   const missingTimes = masjids
     .filter((m) => m.jummahTimes.length === 0)
     .sort((a, b) => a.borough.localeCompare(b.borough) || a.name.localeCompare(b.name));
@@ -44,6 +50,35 @@ export function AdminDashboardPage() {
           Add masjid
         </Link>
       </div>
+
+      {retracted.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-700">
+            Taken down by the community
+          </h2>
+          <ul className="space-y-2">
+            {retracted.map(({ masjid, time }) => (
+              <li key={time.id}>
+                <Card className="p-3">
+                  <Link to={`/admin/masjid/${masjid.id}`} className="block">
+                    <p className="truncate font-medium text-night">{masjid.name}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      Khutbah {time.khutbahNumber} · {formatTime(time.khutbahTime)} —
+                      hidden from the site after {time.reports}{" "}
+                      {time.reports === 1 ? "report" : "reports"} against{" "}
+                      {time.confirmations}{" "}
+                      {time.confirmations === 1 ? "confirmation" : "confirmations"}.
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-faint">
+                      Fix it and mark it verified, or remove it.
+                    </p>
+                  </Link>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <SuggestionsCard
         timeCount={pending.data?.length ?? 0}

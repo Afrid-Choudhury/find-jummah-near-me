@@ -11,28 +11,48 @@ import { supabase } from "@/lib/supabase";
 
 export type VoteKind = "confirm" | "report";
 
-const voteKey = (masjidId: string) => `fjnm:vote:${masjidId}`;
+/**
+ * A vote is either about the listing as a whole or about one schedule, and
+ * the two are tracked separately — confirming a masjid's details shouldn't
+ * spend your say on whether its 1:15 time is right.
+ */
+const voteKey = (masjidId: string, jummahTimeId?: string | null) =>
+  jummahTimeId ? `fjnm:vote:time:${jummahTimeId}` : `fjnm:vote:${masjidId}`;
 
-export function getExistingVote(masjidId: string): VoteKind | null {
+export function getExistingVote(
+  masjidId: string,
+  jummahTimeId?: string | null,
+): VoteKind | null {
   try {
-    const value = window.localStorage.getItem(voteKey(masjidId));
+    const value = window.localStorage.getItem(voteKey(masjidId, jummahTimeId));
     return value === "confirm" || value === "report" ? value : null;
   } catch {
     return null;
   }
 }
 
-export async function submitVote(masjidId: string, kind: VoteKind): Promise<void> {
+/**
+ * Records a 👍/👎. Passing `jummahTimeId` scopes it to that schedule, which
+ * is what feeds the per-time confidence view and can retract a community
+ * time; omitting it keeps the existing masjid-level behaviour.
+ */
+export async function submitVote(
+  masjidId: string,
+  kind: VoteKind,
+  jummahTimeId?: string | null,
+): Promise<void> {
   if (supabase) {
     const table = kind === "confirm" ? "masjid_confirmations" : "masjid_reports";
-    const { error } = await supabase.from(table).insert({ masjid_id: masjidId });
+    const { error } = await supabase
+      .from(table)
+      .insert({ masjid_id: masjidId, jummah_time_id: jummahTimeId ?? null });
     if (error) {
       throw new Error(`Could not record your feedback: ${error.message}`);
     }
   }
   // Mock mode: succeed silently so the UI flow is testable without a backend.
   try {
-    window.localStorage.setItem(voteKey(masjidId), kind);
+    window.localStorage.setItem(voteKey(masjidId, jummahTimeId), kind);
   } catch {
     /* private browsing — vote still counted server-side */
   }

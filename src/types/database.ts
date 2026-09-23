@@ -57,7 +57,10 @@ export interface Database {
           iqamah_time: string | null;
           language: string;
           notes: string | null;
+          /** Set only when an admin personally confirmed this schedule. */
           last_verified_at: string | null;
+          /** 'community' rows are published unverified — see 0010. */
+          source: "admin" | "community";
           created_at: string;
           updated_at: string;
         };
@@ -70,19 +73,31 @@ export interface Database {
           language?: string;
           notes?: string | null;
           last_verified_at?: string | null;
+          source?: "admin" | "community";
         };
         Update: Partial<Database["public"]["Tables"]["jummah_times"]["Insert"]>;
         Relationships: [];
       };
       masjid_confirmations: {
-        Row: { id: string; masjid_id: string; created_at: string };
-        Insert: { id?: string; masjid_id: string };
+        Row: {
+          id: string;
+          masjid_id: string;
+          /** Null = a vote on the listing; set = a vote on that schedule. */
+          jummah_time_id: string | null;
+          created_at: string;
+        };
+        Insert: { id?: string; masjid_id: string; jummah_time_id?: string | null };
         Update: never;
         Relationships: [];
       };
       masjid_reports: {
-        Row: { id: string; masjid_id: string; created_at: string };
-        Insert: { id?: string; masjid_id: string };
+        Row: {
+          id: string;
+          masjid_id: string;
+          jummah_time_id: string | null;
+          created_at: string;
+        };
+        Insert: { id?: string; masjid_id: string; jummah_time_id?: string | null };
         Update: never;
         Relationships: [];
       };
@@ -185,6 +200,10 @@ export interface Database {
         Row: { masjid_id: string; confirmations: number; reports: number };
         Relationships: [];
       };
+      jummah_time_confidence: {
+        Row: { jummah_time_id: string; confirmations: number; reports: number };
+        Relationships: [];
+      };
     };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
@@ -209,6 +228,8 @@ export type MasjidInsert = Database["public"]["Tables"]["masjids"]["Insert"];
 export type MasjidUpdate = Database["public"]["Tables"]["masjids"]["Update"];
 export type JummahTimeInsert = Database["public"]["Tables"]["jummah_times"]["Insert"];
 export type ConfidenceRow = Database["public"]["Views"]["masjid_confidence"]["Row"];
+export type TimeConfidenceRow =
+  Database["public"]["Views"]["jummah_time_confidence"]["Row"];
 export type TimeSuggestionRow = Database["public"]["Tables"]["time_suggestions"]["Row"];
 export type TimeSuggestionInsert = Database["public"]["Tables"]["time_suggestions"]["Insert"];
 export type MasjidSuggestionRow = Database["public"]["Tables"]["masjid_suggestions"]["Row"];

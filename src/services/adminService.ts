@@ -70,9 +70,16 @@ export async function deleteJummahTime(id: string): Promise<void> {
   if (error) throw new Error(`Could not delete Jummah time: ${error.message}`);
 }
 
-/** "Mark verified" = stamp the schedule with today's date. */
+/**
+ * "Mark verified" = stamp the schedule with today's date. Also promotes a
+ * community time to 'admin': verifying it is exactly the act of taking
+ * responsibility for it, so it should stop being labelled unverified.
+ */
 export async function markTimeVerified(id: string): Promise<void> {
-  await updateJummahTime(id, { last_verified_at: new Date().toISOString() });
+  await updateJummahTime(id, {
+    last_verified_at: new Date().toISOString(),
+    source: "admin",
+  });
 }
 
 /* ---------------------------------------------------------------------------
@@ -116,6 +123,8 @@ export async function approveSuggestion(suggestion: {
     iqamah_time: suggestion.iqamahTime,
     language: suggestion.language,
     notes: suggestion.notes,
+    // Explicit: approving an existing community time promotes it to admin.
+    source: "admin" as const,
     last_verified_at: now,
   };
 
@@ -134,6 +143,62 @@ export async function approveSuggestion(suggestion: {
     .update({ status: "approved", reviewed_at: now })
     .eq("id", suggestion.id);
   if (error) throw new Error(`Time saved but could not close suggestion: ${error.message}`);
+}
+
+/**
+ * The fast path: publish a suggested time without claiming to have checked
+ * it. Writes source 'community' with last_verified_at deliberately null, so
+ * the public UI labels it unverified and visitors can confirm or dispute it.
+ *
+ * Distinct from approveSuggestion, which stamps it verified — that one says
+ * "I confirmed this myself."
+ */
+export async function publishSuggestionAsCommunityTime(suggestion: {
+  id: string;
+  masjidId: string;
+  khutbahNumber: number;
+  khutbahTime: string;
+  iqamahTime: string | null;
+  language: string;
+  notes: string | null;
+}): Promise<void> {
+  const client = requireClient();
+  const now = new Date().toISOString();
+
+  const { data: existing, error: lookupError } = await client
+    .from("jummah_times")
+    .select("id")
+    .eq("masjid_id", suggestion.masjidId)
+    .eq("khutbah_number", suggestion.khutbahNumber)
+    .maybeSingle();
+  if (lookupError) throw new Error(lookupError.message);
+
+  const fields = {
+    khutbah_time: suggestion.khutbahTime,
+    iqamah_time: suggestion.iqamahTime,
+    language: suggestion.language,
+    notes: suggestion.notes,
+    source: "community" as const,
+    last_verified_at: null,
+  };
+
+  if (existing) {
+    await updateJummahTime((existing as { id: string }).id, fields);
+  } else {
+    await addJummahTime({
+      masjid_id: suggestion.masjidId,
+      khutbah_number: suggestion.khutbahNumber,
+      ...fields,
+    });
+  }
+
+  const { error } = await client
+    .from("time_suggestions")
+    .update({ status: "approved", reviewed_at: now })
+    .eq("id", suggestion.id);
+  if (error) {
+    throw new Error(`Time published but could not close suggestion: ${error.message}`);
+  }
 }
 
 export async function rejectSuggestion(id: string): Promise<void> {
