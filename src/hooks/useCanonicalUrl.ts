@@ -12,8 +12,9 @@ function upsertHeadTag(selector: string, create: () => HTMLElement): HTMLElement
 
 /**
  * Points <link rel="canonical"> and og:url at SITE_URL + the current path,
- * whichever host the page was actually served from. Query strings and hashes
- * are dropped: `/?q=astoria` is the homepage, not a separate page.
+ * whichever host the page was actually served from. Query strings, hashes and
+ * trailing slashes are dropped: `/?q=astoria` is the homepage, not a separate
+ * page.
  *
  * Deliberately not in index.html: that file is served for every route, so a
  * static canonical there would claim every masjid page is the homepage, and
@@ -23,7 +24,10 @@ export function useCanonicalUrl() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const url = SITE_URL + pathname;
+    // Vercel serves /masjid/x and /masjid/x/ alike (the pre-rendered page is
+    // x/index.html), so both must name the same slash-less canonical.
+    const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+    const url = SITE_URL + path;
 
     const canonical = upsertHeadTag('link[rel="canonical"]', () => {
       const link = document.createElement("link");

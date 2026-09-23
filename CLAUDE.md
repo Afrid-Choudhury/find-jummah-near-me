@@ -194,11 +194,43 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   the homepage. Supabase Auth `site_url` points at the domain (changed with a
   scoped `PATCH`, not `config push`); the vercel.app URL stays in the
   redirect allow-list.
+- **Masjid pages are pre-rendered at build time.** `npm run build` ends with
+  `npm run prerender`: `vite build --ssr src/prerender/main.ts` then runs it,
+  writing `dist/masjid/<slug>/index.html` for all 204 masjids — real title,
+  description, canonical, and the name/address/times as plain HTML inside
+  `#root`, so search engines don't have to execute JS. React mounts over it
+  and refetches. It reuses `fetchMasjids`/`toMasjid`, so retracted times stay
+  out of the static HTML too. Without Supabase env vars (CI) it skips rather
+  than publish mock data; a fetch failure also skips instead of failing the
+  deploy. Vercel serves `masjid/x/index.html` at `/masjid/x` (verified on a
+  preview deploy) ahead of the SPA rewrite; `vite preview` only does so with
+  a trailing slash, so test locally with `/masjid/x/`.
+  **The snapshot is only as fresh as the last deploy** — an admin edit
+  doesn't rebuild it, so Google can hold a stale time until the next push.
+  A Vercel Deploy Hook triggered on `jummah_times` changes (or on a
+  schedule) would close that gap; not set up yet.
+- Page titles/descriptions come from `src/lib/seo.ts`
+  (`masjidPageTitle`/`masjidPageDescription`), shared by the live page and
+  the pre-render. Titles lead with the times ("MAS Queens Center — Jummah
+  1:15 & 2:15 PM"); the description states the evidence ("Verified <date>"
+  vs "Community times, not yet confirmed — call ahead"), since a search
+  result showing a bare time must not pass as checked. Provenance wording
+  lives in `describeProvenance` (`src/lib/jummah.ts`), used by both
+  `KhutbahTiming` and the pre-render. `formatVerifiedDate` is pinned to
+  America/New_York so a UTC build server prints the same date as the browser.
+- Two things the pre-render forced: `useDocumentMeta` restores the **site
+  defaults** on unmount, not the title it found (a pre-rendered page arrives
+  with its own, which would otherwise stick to the next page); and
+  `useCanonicalUrl` strips trailing slashes, since Vercel serves `/masjid/x/`
+  too.
 - **`hello@findjummahnearme.com` (on the Contact page) has no mailbox yet.**
   Vercel DNS doesn't host email — mail to it bounces until forwarding (e.g.
   ImprovMX, or an MX record to a provider) is set up.
-- **Search Console / Bing Webmaster Tools not set up yet** — needs a DNS TXT
-  record, which goes in Vercel's DNS for the domain.
+- **Google Search Console:** Domain property, verified by a
+  `google-site-verification=…` TXT record on the apex in Vercel DNS (added
+  2026-09-23 with `vercel dns add`). **Don't delete that record** — Google
+  re-checks it and drops ownership if it disappears. Bing Webmaster Tools not
+  set up yet (can import from Search Console).
 - **Supabase is live**, not just migrated locally: `FindjumahMVP` project,
   204 masjids seeded, RLS + grants verified end-to-end (anon read of the
   masjid list and an anon confirmation vote round-tripping through the

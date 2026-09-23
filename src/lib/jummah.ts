@@ -81,13 +81,53 @@ export function formatTimeUntil(target: Date, now: Date): string {
   return sameDay ? `today ${timeLabel}` : `Friday ${timeLabel}`;
 }
 
+/**
+ * Pinned to New York rather than the machine's zone: pre-rendered pages are
+ * built on a UTC server, and an evening verification would otherwise show a
+ * different date there than in the visitor's browser.
+ */
 export function formatVerifiedDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "America/New_York",
   });
 }
+
+export type ProvenanceKind =
+  | "verified"
+  | "admin-unverified"
+  | "community-confirmed"
+  | "community-unconfirmed";
+
+/**
+ * The one wording of "how much should you trust this time". KhutbahTiming
+ * renders it and the pre-rendered masjid pages print it, so the two can't
+ * describe the same row differently (architecture rule 4).
+ */
+export function describeProvenance(
+  time: Pick<JummahTime, "source" | "lastVerifiedAt" | "confirmations" | "reports">,
+): { kind: ProvenanceKind; label: string } {
+  if (time.source === "admin" && time.lastVerifiedAt) {
+    return { kind: "verified", label: `Verified ${formatVerifiedDate(time.lastVerifiedAt)}` };
+  }
+  if (time.source === "admin") {
+    return { kind: "admin-unverified", label: "Not yet verified" };
+  }
+  if (time.confirmations > 0 && time.confirmations >= time.reports) {
+    const people = time.confirmations === 1 ? "person" : "people";
+    return {
+      kind: "community-confirmed",
+      label: `Community time · confirmed by ${time.confirmations} ${people}`,
+    };
+  }
+  return { kind: "community-unconfirmed", label: "Community time · not yet confirmed" };
+}
+
+/** Shown under an unconfirmed community time, on the page and in pre-rendered HTML. */
+export const COMMUNITY_UNCONFIRMED_NOTE =
+  "Not checked by us — from the masjid's website or someone who prays here. If you've prayed here, confirming it helps everyone else.";
 
 /* ---------------------------------------------------------------------------
  * Khutbah timing — what happens, and when, once you are inside the masjid.

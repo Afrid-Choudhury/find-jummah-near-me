@@ -3,8 +3,9 @@ import { Badge, Button, Card } from "@/components/ui";
 import { useNow } from "@/hooks/useNow";
 import {
   buildKhutbahTimeline,
+  COMMUNITY_UNCONFIRMED_NOTE,
+  describeProvenance,
   formatClock,
-  formatVerifiedDate,
   type KhutbahTimeline,
 } from "@/lib/jummah";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -159,35 +160,20 @@ function KhutbahShift({ time, label, timeline, masjidId }: KhutbahShiftProps) {
  * track the data, never flatter it.
  */
 function Provenance({ time }: { time: JummahTime }) {
-  if (time.source === "admin" && time.lastVerifiedAt) {
-    return (
-      <p className="mt-1 text-xs text-ink-faint">
-        Verified {formatVerifiedDate(time.lastVerifiedAt)}
-      </p>
-    );
+  const { kind, label } = describeProvenance(time);
+
+  if (kind === "verified" || kind === "admin-unverified") {
+    return <p className="mt-1 text-xs text-ink-faint">{label}</p>;
   }
 
-  if (time.source === "admin") {
-    return <p className="mt-1 text-xs text-ink-faint">Not yet verified</p>;
-  }
-
-  const confirmed = time.confirmations > 0 && time.confirmations >= time.reports;
-  if (confirmed) {
-    return (
-      <p className="mt-1 text-xs text-ink-muted">
-        Community time · confirmed by {time.confirmations}{" "}
-        {time.confirmations === 1 ? "person" : "people"}
-      </p>
-    );
+  if (kind === "community-confirmed") {
+    return <p className="mt-1 text-xs text-ink-muted">{label}</p>;
   }
 
   return (
     <div className="mt-1">
-      <p className="text-xs text-ink-muted">Community time · not yet confirmed</p>
-      <p className="mt-0.5 text-xs text-ink-faint">
-        Not checked by us — from the masjid&apos;s website or someone who prays here. If
-        you&apos;ve prayed here, confirming it helps everyone else.
-      </p>
+      <p className="text-xs text-ink-muted">{label}</p>
+      <p className="mt-0.5 text-xs text-ink-faint">{COMMUNITY_UNCONFIRMED_NOTE}</p>
     </div>
   );
 }

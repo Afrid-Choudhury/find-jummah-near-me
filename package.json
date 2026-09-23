@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run prerender",
+    "prerender": "vite build --ssr src/prerender/main.ts --outDir dist-ssr && node dist-ssr/main.js",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --max-warnings 0",
     "typecheck": "tsc --noEmit"

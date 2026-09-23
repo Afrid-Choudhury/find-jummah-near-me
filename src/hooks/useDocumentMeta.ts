@@ -3,23 +3,26 @@ import { useEffect } from "react";
 const DEFAULT_TITLE = "Find Jummah Near Me — Friday Prayer, Found Fast";
 const DEFAULT_DESCRIPTION = "Find nearby masjids and the best Jummah you can still make.";
 
-/** Sets the tab title + meta description while mounted, restoring the defaults on unmount. */
+/**
+ * Sets the tab title + meta description while mounted, restoring the site
+ * defaults on unmount.
+ *
+ * Restores the defaults rather than whatever was there at mount: a
+ * pre-rendered masjid page arrives with that masjid's title already in the
+ * HTML, so "previous" would carry it onto the next page the visitor opens.
+ */
 export function useDocumentMeta(title: string, description?: string) {
   useEffect(() => {
-    const previousTitle = document.title;
     document.title = title;
 
     const metaDescription = document.querySelector('meta[name="description"]');
-    const previousDescription = metaDescription?.getAttribute("content") ?? DEFAULT_DESCRIPTION;
     if (description && metaDescription) {
       metaDescription.setAttribute("content", description);
     }
 
     return () => {
-      document.title = previousTitle;
-      if (metaDescription) {
-        metaDescription.setAttribute("content", previousDescription);
-      }
+      document.title = DEFAULT_TITLE;
+      metaDescription?.setAttribute("content", DEFAULT_DESCRIPTION);
     };
   }, [title, description]);
 }

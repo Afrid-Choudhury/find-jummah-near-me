@@ -8,6 +8,7 @@ import { SuggestTimeForm } from "@/components/masjid/SuggestTimeForm";
 import { Badge, Card, Skeleton } from "@/components/ui";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { useMasjid } from "@/hooks/useMasjids";
+import { masjidPageDescription, masjidPageTitle, SITE_NAME } from "@/lib/seo";
 
 export function MasjidDetailPage() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -15,10 +16,8 @@ export function MasjidDetailPage() {
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   useDocumentMeta(
-    masjid ? `${masjid.name} — Jummah Times | Find Jummah Near Me` : "Find Jummah Near Me",
-    masjid
-      ? `Jummah times, address, and directions for ${masjid.name} in ${masjid.neighborhood ?? masjid.borough}.`
-      : undefined,
+    masjid ? masjidPageTitle(masjid) : SITE_NAME,
+    masjid ? masjidPageDescription(masjid) : undefined,
   );
 
   if (isLoading) {
