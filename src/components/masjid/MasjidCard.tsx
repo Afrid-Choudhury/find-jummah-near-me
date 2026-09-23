@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui";
 import { formatTimeUntil, nextJummahForMasjid } from "@/lib/jummah";
 import { formatDistance } from "@/lib/utils";
-import type { MasjidWithDistance } from "@/types";
+import { isVerifiedTime, type MasjidWithDistance } from "@/types";
 import { ConfidenceMeta } from "./ConfidenceMeta";
 import { DirectionsButton } from "./DirectionsButton";
 import { JummahTimeBadge } from "./JummahTimeBadge";
@@ -20,6 +20,7 @@ interface MasjidCardProps {
  */
 export function MasjidCard({ masjid, now }: MasjidCardProps) {
   const next = nextJummahForMasjid(masjid.jummahTimes, now);
+  const unverifiedCount = masjid.jummahTimes.filter((t) => !isVerifiedTime(t)).length;
 
   return (
     <Card className="p-4 transition-shadow hover:shadow-raised">
@@ -49,11 +50,22 @@ export function MasjidCard({ masjid, now }: MasjidCardProps) {
           <span className="text-sm text-ink-faint">Jummah time not listed yet</span>
         )}
         {next && (
-          <span className="text-sm font-medium text-saffron-deep">
+          <span
+            className={`text-sm font-medium ${
+              isVerifiedTime(next.time) ? "text-saffron-deep" : "text-ink-muted"
+            }`}
+          >
             Jummah {formatTimeUntil(next.at, now)}
           </span>
         )}
       </div>
+      {unverifiedCount > 0 && (
+        <p className="mt-1.5 text-xs text-ink-faint">
+          {unverifiedCount === masjid.jummahTimes.length
+            ? `Community ${unverifiedCount === 1 ? "time" : "times"} · not checked by us`
+            : "Dashed times are community times, not checked by us"}
+        </p>
+      )}
 
       <div className="mt-3 flex items-end justify-between gap-3">
         <ConfidenceMeta masjid={masjid} />

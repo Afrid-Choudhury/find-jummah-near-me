@@ -185,8 +185,8 @@ function Provenance({ time }: { time: JummahTime }) {
     <div className="mt-1">
       <p className="text-xs text-ink-muted">Community time · not yet confirmed</p>
       <p className="mt-0.5 text-xs text-ink-faint">
-        Sent in by someone in the community and not checked by us. If you&apos;ve prayed here,
-        confirming it helps everyone else.
+        Not checked by us — from the masjid&apos;s website or someone who prays here. If
+        you&apos;ve prayed here, confirming it helps everyone else.
       </p>
     </div>
   );

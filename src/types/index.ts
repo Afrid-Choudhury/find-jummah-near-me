@@ -126,6 +126,11 @@ export function isTimeRetracted(
   return reports >= RETRACTION_MIN_REPORTS && reports > confirmations;
 }
 
+/** The top tier: an admin confirmed this time themselves. Only it earns saffron. */
+export function isVerifiedTime(time: Pick<JummahTime, "source" | "lastVerifiedAt">): boolean {
+  return time.source === "admin" && time.lastVerifiedAt !== null;
+}
+
 /** A masjid annotated with its distance from the user, in miles. */
 export interface MasjidWithDistance extends Masjid {
   distanceMiles: number | null;

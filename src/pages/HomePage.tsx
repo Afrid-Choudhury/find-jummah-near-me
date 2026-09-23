@@ -27,6 +27,8 @@ export function HomePage() {
     search: debouncedSearch,
   });
 
+  const withTimesCount = masjids.filter((m) => m.jummahTimes.length > 0).length;
+
   const recommendation =
     coordinates && !debouncedSearch ? recommendBestJummah(masjids, now) : null;
 
@@ -72,7 +74,7 @@ export function HomePage() {
           </h2>
           {!isLoading && !error && (
             <span className="text-xs tabular-nums text-ink-faint">
-              {masjids.length} listed
+              {masjids.length} listed · {withTimesCount} with times
             </span>
           )}
         </div>

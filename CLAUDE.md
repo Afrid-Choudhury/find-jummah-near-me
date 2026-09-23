@@ -200,11 +200,24 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   visitors to `/login`).
 - CI (`.github/workflows/ci.yml`) runs `typecheck` + `build` on every PR
   and push to `main`, green as of the last push.
-- **Three** `jummah_times` rows exist as of 2026-09-22 (Baitul Ateeq, Masjid
-  Hanafia, Woodside Baitul Jannah) — all `source 'admin'` and verified, all
-  entered by hand through `/admin`. 201 masjids still show the empty state,
-  so entering times remains the main work; `/admin` sorts masjids with no
-  times first. `0010` exists precisely to make that backlog tractable:
+- **17** `jummah_times` rows exist as of 2026-09-23. Three are verified
+  (`source 'admin'`, entered through `/admin` on 2026-09-22: Baitul Ateeq,
+  Masjid Hanafia, Woodside Baitul Jannah). Fourteen are community times across
+  8 masjids, read off each masjid's own website on 2026-09-23 and loaded by
+  `supabase/seed_community_times.sql` (`on conflict do nothing` — re-running it
+  would resurrect a row you'd deleted after a retraction). **Malcolm Shabazz
+  and Madani Mosque carry summer times** and need changing by hand when the
+  clocks go back on 2026-11-01. 193 masjids still show the empty state, so
+  entering times remains the main work; `/admin` sorts masjids with no times
+  first.
+- Community times are neutral **everywhere** they render, not just on the
+  masjid page: `JummahTimeBadge` (listing cards) gives only verified times
+  saffron (`isVerifiedTime` in `src/types/index.ts`), and the card's
+  countdown follows the same rule.
+- List order (`useMasjids`): with a location, **distance only** — data
+  completeness never outranks it. Without one: masjids with a verified time,
+  then community-only, then none, name order within each. The homepage shows
+  "N listed · M with times" so the order has a visible reason. `0010` exists precisely to make that backlog tractable:
   plausible suggestions can now go live labelled unverified instead of
   waiting on a phone call.
 - Latest feature: **tiered community trust** (`0010`). `/admin/suggestions`

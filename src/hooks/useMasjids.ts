@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMasjidBySlug, fetchMasjids } from "@/services/masjidService";
 import { distanceMiles } from "@/lib/utils";
-import type { Coordinates, MasjidWithDistance } from "@/types";
+import { isVerifiedTime, type Coordinates, type Masjid, type MasjidWithDistance } from "@/types";
 
 export const masjidKeys = {
   all: ["masjids"] as const,
@@ -42,11 +42,19 @@ export function useMasjids({ origin, search }: UseMasjidsOptions) {
         if (a.distanceMiles !== null && b.distanceMiles !== null) {
           return a.distanceMiles - b.distanceMiles;
         }
-        return a.name.localeCompare(b.name);
+        // No location to sort by: show the masjids we can actually tell you
+        // something about first. Never outranks distance — see above.
+        return completenessRank(a) - completenessRank(b) || a.name.localeCompare(b.name);
       });
   }, [query.data, origin, search]);
 
   return { ...query, masjids };
+}
+
+/** 0 — has a verified time · 1 — only community/unverified times · 2 — no times. */
+function completenessRank(masjid: Masjid): 0 | 1 | 2 {
+  if (masjid.jummahTimes.length === 0) return 2;
+  return masjid.jummahTimes.some(isVerifiedTime) ? 0 : 1;
 }
 
 export function useMasjid(slug: string) {

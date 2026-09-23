@@ -54,8 +54,9 @@ export function AboutPage() {
             last checked.
           </p>
           <p className="mt-3">
-            <strong className="font-semibold text-night">Community times</strong> are
-            sent in by someone in the community and haven&apos;t been checked by us.
+            <strong className="font-semibold text-night">Community times</strong> come
+            from a masjid&apos;s own website or from someone who prays there, and
+            haven&apos;t been checked by us.
             They&apos;re published anyway — a time you can check beats a blank space
             — and labelled &ldquo;not yet confirmed&rdquo; until people who&apos;ve
             prayed there tap 👍. Then they show how many have, as in &ldquo;confirmed
