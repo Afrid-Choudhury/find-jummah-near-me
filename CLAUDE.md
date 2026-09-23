@@ -205,7 +205,13 @@ in the UI (see the `~` times and footnote in `KhutbahTiming.tsx`).
   Masjid Hanafia, Woodside Baitul Jannah). Fourteen are community times across
   8 masjids, read off each masjid's own website on 2026-09-23 and loaded by
   `supabase/seed_community_times.sql` (`on conflict do nothing` — re-running it
-  would resurrect a row you'd deleted after a retraction). **Malcolm Shabazz
+  would resurrect a row you'd deleted after a retraction). All 14 were
+  re-checked against the websites the same day and three corrected (ICCNY
+  had its prayer time loaded as the khutbah; Hazrat Abu Bakr was one Jummah
+  split into two; Sunnyside was missing its 2:15) — the seed file matches
+  live. **Malcolm Shabazz, Madani and Al-Furqan don't say whether their
+  listed time is the khutbah or the salat**, so they're the first to phone:
+  if it's the salat, people arrive half an hour into the khutbah. **Malcolm Shabazz
   and Madani Mosque carry summer times** and need changing by hand when the
   clocks go back on 2026-11-01. 193 masjids still show the empty state, so
   entering times remains the main work; `/admin` sorts masjids with no times

@@ -11,6 +11,18 @@
 -- or hide them behind a widget or PDF — they stay on the admin checklist.
 --
 -- Masjid ids are looked up by slug, so this is safe to re-run.
+--
+-- Re-checked against every site the same day. Three rows were corrected (and
+-- the same corrections applied to the live project), so this file matches
+-- what's live:
+--   * ICCNY listed "Kutbah 1:00, Prayer 1:30" — 1:30 had been loaded as the
+--     khutbah, which would send people half an hour late.
+--   * Hazrat Abu Bakr is one Jummah (English bayaan 12:45, Arabic khutbah
+--     ~1:15, salat 1:30), not two separate khutbahs.
+--   * Sunnyside's 2:15 is a second Jumuʼah — the site lists it as a badge
+--     beside 1:10, outside the adhan/iqamah table.
+-- Several sites don't say whether their time is the khutbah or the salat
+-- (Malcolm Shabazz, Madani, Al-Furqan). Those are the ones to phone first.
 
 insert into public.jummah_times
   (masjid_id, khutbah_number, khutbah_time, iqamah_time, language, notes, source)
@@ -22,10 +34,11 @@ values
    'From themasjidmalcolmshabazz.com, Sept 2026. Summer schedule — site lists 12:00 PM for fall/winter. Unconfirmed.',
    'community'),
 
-  -- Islamic Cultural Center of New York
+  -- Islamic Cultural Center of New York — site lists khutbah and prayer
+  -- separately.
   ((select id from public.masjids where slug = 'islamic-cultural-center-of-new-york'),
-   1, '13:30:00', null, 'English',
-   'From icc-ny.us, Sept 2026. Unconfirmed.', 'community'),
+   1, '13:00:00', '13:30:00', 'English',
+   'From icc-ny.us, Sept 2026 — khutbah 1:00, prayer 1:30. Unconfirmed.', 'community'),
 
   -- Masjid Ar-Rahman — three khutbahs, each with its own salah time, so the
   -- khutbah/iqamah pairing here is the masjid's own.
@@ -50,13 +63,13 @@ values
    3, '15:00:00', null, 'English',
    'From assafaislamiccenter.org, Sept 2026. Unconfirmed.', 'community'),
 
-  -- Hazrat Abu Bakr Siddique — two khutbahs, different languages
+  -- Hazrat Abu Bakr Siddique — one Jummah. The 12:45 English bayaan is a
+  -- talk before it; the khutbah proper is the Arabic one, with salat at 1:30
+  -- per the masjid's monthly schedule PDF.
   ((select id from public.masjids where slug = 'hazrat-abu-bakr-siddique'),
-   1, '12:45:00', null, 'English',
-   'From masjid-abubakr.org, Sept 2026. Unconfirmed.', 'community'),
-  ((select id from public.masjids where slug = 'hazrat-abu-bakr-siddique'),
-   2, '13:15:00', null, 'Arabic',
-   'From masjid-abubakr.org, Sept 2026. Unconfirmed.', 'community'),
+   1, '13:15:00', '13:30:00', 'Arabic',
+   'From masjid-abubakr.org, Sept 2026 — English talk (bayaan) from 12:45, Arabic khutbah around 1:15, salat 1:30. Unconfirmed.',
+   'community'),
 
   -- Al-Furqan Jame Mosque — site lists a third khutbah but repeats 2:30,
   -- so only the two unambiguous ones are loaded here.
@@ -68,13 +81,13 @@ values
    2, '14:30:00', null, 'English',
    'From alfurqanmasjid.org, Sept 2026. Unconfirmed.', 'community'),
 
-  -- Sunnyside Muslim Center — site also shows 2:15, which is too far after
-  -- 1:10 to be that khutbah's iqamah. Likely a second jummah; left out until
-  -- someone checks, rather than guessed at.
+  -- Sunnyside Muslim Center — two Jumuʼahs, shown as matching badges.
   ((select id from public.masjids where slug = 'sunnyside-muslim-center'),
    1, '13:10:00', null, 'English',
-   'From smcmosque.com, Sept 2026. Site also shows 2:15 — possibly a second jummah, unconfirmed.',
-   'community'),
+   'From smcmosque.com, Sept 2026. Unconfirmed.', 'community'),
+  ((select id from public.masjids where slug = 'sunnyside-muslim-center'),
+   2, '14:15:00', null, 'English',
+   'From smcmosque.com, Sept 2026 — listed as a second Jumuʼah. Unconfirmed.', 'community'),
 
   -- Madani Mosque — seasonal. 1:30 PM summer, 1:15 PM winter.
   ((select id from public.masjids where slug = 'madani-mosque'),
