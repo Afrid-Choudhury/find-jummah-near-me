@@ -31,7 +31,11 @@ Read `BUILD_GUIDE.md` for the full phase-by-phase design rationale.
      from a suggestion because it looked plausible, *not* because anyone
      checked. Shown with a quieter, dashed treatment, labelled as unverified,
      and carrying its own 👍/👎 controls. Marking one verified promotes it to
-     the tier above; that's what `markTimeVerified` is for.
+     the tier above; that's what `markTimeVerified` is for. Any write that
+     stamps `last_verified_at` must also set `source: 'admin'` (editing a time
+     in the times editor does both) — a community row with a verified date
+     is labelled community by `KhutbahTiming` but treated as verified by
+     `recommendBestJummah`, so the two would disagree.
    - **Retracted** — a community time the crowd rejected (`reports >= 2` and
      `reports > confirmations`, see `isTimeRetracted`). Hidden from the public
      site and from the recommendation engine, never deleted: the mapper keeps

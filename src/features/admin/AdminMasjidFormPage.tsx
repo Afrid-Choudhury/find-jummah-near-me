@@ -540,7 +540,10 @@ function JummahTimesEditor({
         iqamah_time: edit.iqamahTime || null,
         language: edit.language.trim() || "English",
         notes: edit.notes.trim() || null,
-        last_verified_at: new Date().toISOString(), // editing implies you just confirmed it
+        // Editing implies you just confirmed it, so it's verified — and a
+        // community time edited here is promoted, same as markTimeVerified.
+        last_verified_at: new Date().toISOString(),
+        source: "admin",
       });
       setEditingId(null);
     });

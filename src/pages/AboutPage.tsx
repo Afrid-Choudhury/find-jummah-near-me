@@ -26,23 +26,59 @@ export function AboutPage() {
         </p>
 
         <div>
-          <h2 className="font-display text-lg font-semibold text-night">About the times</h2>
+          <h2 className="font-display text-lg font-semibold text-night">This only works with help</h2>
           <p className="mt-1">
-            Every time here is reviewed before it&apos;s published, and each listing
-            shows when it was last verified. Schedules still change — especially
-            when the clocks do — so if you&apos;re travelling any distance, call
-            ahead. Phone numbers are on the masjid pages where we have them.
+            No one person can keep hundreds of Friday schedules accurate. Times shift
+            with the seasons, masjids add a second khutbah as they outgrow the first,
+            a musalla opens in a basement that nobody has listed yet. The only version
+            of this that stays true is one maintained by the people who actually pray
+            at these masjids.
           </p>
           <p className="mt-3">
-            If something looks wrong, the 👎 on any listing flags it for review. If
-            you know a time that&apos;s missing, add it. That&apos;s how this fills
-            in.
+            So it&apos;s open. If you know a time that&apos;s missing, add it — you
+            don&apos;t need an account. If you prayed somewhere last Friday and the
+            time here was right, tap 👍; if it was wrong, tap 👎. If a masjid isn&apos;t
+            listed at all, send it. Each of those takes a few seconds, and together
+            they do something no amount of work by one person could.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="font-display text-lg font-semibold text-night">About the times</h2>
+          <p className="mt-1">
+            You&apos;ll see two kinds of time here, and the difference is deliberate.
+          </p>
+          <p className="mt-3">
+            <strong className="font-semibold text-night">Verified</strong> times have
+            been confirmed directly with the masjid. Each one shows the date it was
+            last checked.
+          </p>
+          <p className="mt-3">
+            <strong className="font-semibold text-night">Community times</strong> are
+            sent in by someone in the community and haven&apos;t been checked by us.
+            They&apos;re published anyway — a time you can check beats a blank space
+            — and labelled &ldquo;not yet confirmed&rdquo; until people who&apos;ve
+            prayed there tap 👍. Then they show how many have, as in &ldquo;confirmed
+            by 3 people.&rdquo; That means other worshippers agree, not that
+            we&apos;ve checked it; only verified times carry a date.
+          </p>
+          <p className="mt-3">
+            Every 👎 counts too. A community time that enough people dispute comes
+            back down.
+          </p>
+          <p className="mt-3">
+            Either way, schedules change, especially when the clocks do. If
+            you&apos;re travelling any distance, call ahead. Phone numbers are on the
+            masjid pages where we have them.
           </p>
         </div>
 
         <div>
           <h2 className="font-display text-lg font-semibold text-night">Who&apos;s behind it</h2>
-          <p className="mt-1">Built and maintained by Afrid, in Queens.</p>
+          <p className="mt-1">
+            Built and maintained by Afrid, in Queens — with times and corrections sent
+            in by people who pray at these masjids.
+          </p>
         </div>
       </div>
     </div>
