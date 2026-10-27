@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import type { MasjidWithDistance } from "@/types";
 import { MasjidCard } from "./MasjidCard";
 
@@ -9,12 +10,33 @@ interface MasjidListProps {
   isLoading: boolean;
   error: Error | null;
   searchTerm: string;
+  /** Highlighted card — the one whose pin is hovered or was clicked on the map. */
+  activeId?: string | null;
+  /** Hover or keyboard focus entering/leaving a card, so the map can follow. */
+  onActiveChange?: (id: string | null) => void;
 }
 
-export function MasjidList({ masjids, now, isLoading, error, searchTerm }: MasjidListProps) {
+/** DOM id of a masjid's list item, so the map can scroll a card into view. */
+export function masjidCardId(masjidId: string): string {
+  return `masjid-card-${masjidId}`;
+}
+
+// One column on phones and in the desktop list pane; two on tablets, where the
+// list has the whole width to itself.
+const LIST_GRID = "grid gap-3 md:grid-cols-2 lg:grid-cols-1";
+
+export function MasjidList({
+  masjids,
+  now,
+  isLoading,
+  error,
+  searchTerm,
+  activeId = null,
+  onActiveChange,
+}: MasjidListProps) {
   if (isLoading) {
     return (
-      <div className="space-y-3" aria-busy="true" aria-label="Loading masjids">
+      <div className={LIST_GRID} aria-busy="true" aria-label="Loading masjids">
         {Array.from({ length: 4 }, (_, i) => (
           <Skeleton key={i} className="h-40 rounded-card" />
         ))}
@@ -54,9 +76,21 @@ export function MasjidList({ masjids, now, isLoading, error, searchTerm }: Masji
 
   return (
     <>
-      <ul className="space-y-3">
+      <ul className={LIST_GRID}>
         {masjids.map((masjid) => (
-          <li key={masjid.id}>
+          <li
+            key={masjid.id}
+            id={masjidCardId(masjid.id)}
+            // Clear of the sticky header + search when scrolled to from the map
+            className={cn(
+              "scroll-mt-36 rounded-card transition-shadow",
+              masjid.id === activeId && "ring-2 ring-night ring-offset-2 ring-offset-paper",
+            )}
+            onMouseEnter={onActiveChange && (() => onActiveChange(masjid.id))}
+            onMouseLeave={onActiveChange && (() => onActiveChange(null))}
+            onFocus={onActiveChange && (() => onActiveChange(masjid.id))}
+            onBlur={onActiveChange && (() => onActiveChange(null))}
+          >
             <MasjidCard masjid={masjid} now={now} />
           </li>
         ))}
