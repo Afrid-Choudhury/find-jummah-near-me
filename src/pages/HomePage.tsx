@@ -84,11 +84,8 @@ export function HomePage() {
 
         {recommendation && <RecommendationCard recommendation={recommendation} />}
 
-        {/* Offset = header height: two rows on phones, one from md (see Header) */}
-        <section
-          aria-label="Search"
-          className="sticky top-[5.5rem] z-10 -mx-4 bg-paper px-4 py-2 md:top-14"
-        >
+        {/* Offset = header height (see Header) */}
+        <section aria-label="Search" className="sticky top-14 z-10 -mx-4 bg-paper px-4 py-2">
           <SearchBar value={search} onChange={setSearch} />
         </section>
 
