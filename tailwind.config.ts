@@ -47,7 +47,7 @@ export default {
         raised: "0 2px 4px rgba(13, 59, 46, 0.08), 0 8px 24px rgba(13, 59, 46, 0.10)",
       },
       maxWidth: {
-        app: "28rem", // mobile-first shell; centered column on desktop
+        app: "28rem", // phone-width column — see PageWidth in AppShell
       },
     },
   },
