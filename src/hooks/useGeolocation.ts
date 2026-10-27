@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Coordinates, GeolocationStatus } from "@/types";
 
 interface UseGeolocationResult {
@@ -11,8 +11,10 @@ interface UseGeolocationResult {
 /**
  * Wraps navigator.geolocation with explicit status states so the UI can
  * distinguish "hasn't asked yet" from "denied" from "unsupported browser".
- * Location is requested on user action (button tap), never on mount —
- * unprompted permission dialogs hurt trust and grant rates.
+ * A permission dialog only ever follows a user action (button tap) —
+ * unprompted dialogs hurt trust and grant rates. The one thing done on mount
+ * is locating visitors who *already* granted permission, which shows no
+ * dialog and saves them the tap every Friday.
  */
 export function useGeolocation(): UseGeolocationResult {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
@@ -38,6 +40,22 @@ export function useGeolocation(): UseGeolocationResult {
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
     );
   }, []);
+
+  // Only on "granted". Browsers without the Permissions API, or reporting
+  // "prompt" (iOS Safari often does, even for returning visitors), keep the
+  // button.
+  useEffect(() => {
+    let cancelled = false;
+    navigator.permissions
+      ?.query({ name: "geolocation" })
+      .then((permission) => {
+        if (!cancelled && permission.state === "granted") requestLocation();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [requestLocation]);
 
   return { coordinates, status, requestLocation };
 }
