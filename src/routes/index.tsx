@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter } from "react-router-dom";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, type RouteHandle } from "@/components/layout/AppShell";
 import { HomePage } from "@/pages/HomePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { Skeleton } from "@/components/ui";
@@ -62,8 +62,12 @@ export const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/masjid/:slug", element: suspended(<MasjidDetailPage />) },
+      { path: "/", element: <HomePage />, handle: { width: "full" } satisfies RouteHandle },
+      {
+        path: "/masjid/:slug",
+        element: suspended(<MasjidDetailPage />),
+        handle: { width: "narrow" } satisfies RouteHandle,
+      },
       { path: "/login", element: suspended(<LoginPage />) },
       { path: "/account", element: suspended(<AccountPage />) },
       { path: "/about", element: suspended(<AboutPage />) },
