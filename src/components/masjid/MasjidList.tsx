@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { MasjidWithDistance } from "@/types";
 import { MasjidCard } from "./MasjidCard";
+import { MasjidRow } from "./MasjidRow";
 
 interface MasjidListProps {
   masjids: MasjidWithDistance[];
@@ -22,8 +23,11 @@ export function masjidCardId(masjidId: string): string {
 }
 
 // One column on phones and in the desktop list pane; two on tablets, where the
-// list has the whole width to itself.
-const LIST_GRID = "grid gap-3 md:grid-cols-2 lg:grid-cols-1";
+// list has the whole width to itself. grid-cols-1 rather than the implicit
+// column, which would size itself to the rows' unwrapped (truncated) text and
+// push past the screen. items-start: a compact row beside a full card keeps
+// its own height.
+const LIST_GRID = "grid grid-cols-1 items-start gap-3 md:grid-cols-2 lg:grid-cols-1";
 
 export function MasjidList({
   masjids,
@@ -91,7 +95,11 @@ export function MasjidList({
             onFocus={onActiveChange && (() => onActiveChange(masjid.id))}
             onBlur={onActiveChange && (() => onActiveChange(null))}
           >
-            <MasjidCard masjid={masjid} now={now} />
+            {masjid.jummahTimes.length > 0 ? (
+              <MasjidCard masjid={masjid} now={now} />
+            ) : (
+              <MasjidRow masjid={masjid} />
+            )}
           </li>
         ))}
       </ul>
