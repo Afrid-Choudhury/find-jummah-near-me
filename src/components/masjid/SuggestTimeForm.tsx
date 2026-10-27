@@ -4,6 +4,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { submitSuggestion } from "@/services/suggestionService";
 import type { Masjid } from "@/types";
+import { confirmJummahTimes, JummahTimeInput } from "./JummahTimeInput";
 
 interface SuggestTimeFormProps {
   masjid: Masjid;
@@ -61,6 +62,7 @@ export function SuggestTimeForm({ masjid, open: controlledOpen, onOpenChange }: 
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!confirmJummahTimes(khutbahTime, iqamahTime)) return;
     setState("sending");
     setError(null);
     try {
@@ -98,16 +100,12 @@ export function SuggestTimeForm({ masjid, open: controlledOpen, onOpenChange }: 
             {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <label className="text-sm">
-          <span className="mb-1 block font-medium text-night">Khutbah time</span>
-          <input type="time" required className={inputClass} value={khutbahTime}
-            onChange={(e) => setKhutbahTime(e.target.value)} />
-        </label>
-        <label className="text-sm">
-          <span className="mb-1 block font-medium text-night">Iqamah (optional)</span>
-          <input type="time" className={inputClass} value={iqamahTime}
-            onChange={(e) => setIqamahTime(e.target.value)} />
-        </label>
+        <JummahTimeInput required labelClassName="block text-sm" inputClassName={inputClass}
+          label={<span className="mb-1 block font-medium text-night">Khutbah time</span>}
+          value={khutbahTime} onChange={setKhutbahTime} />
+        <JummahTimeInput labelClassName="block text-sm" inputClassName={inputClass}
+          label={<span className="mb-1 block font-medium text-night">Iqamah (optional)</span>}
+          value={iqamahTime} onChange={setIqamahTime} />
         <label className="text-sm">
           <span className="mb-1 block font-medium text-night">Language</span>
           <input className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value)} />

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { confirmJummahTimes, JummahTimeInput } from "@/components/masjid/JummahTimeInput";
 import { Button, Card, Skeleton } from "@/components/ui";
 import { masjidKeys, useMasjids } from "@/hooks/useMasjids";
 import { BOROUGHS } from "@/lib/constants";
@@ -8,7 +9,7 @@ import { formatTime, formatVerifiedDate } from "@/lib/jummah";
 import { NYC_BOUNDS, parseMapLink, type MapLinkResult } from "@/lib/mapLinks";
 import * as admin from "@/services/adminService";
 import { fetchMasjidSuggestion } from "@/services/masjidSuggestionService";
-import type { JummahTime, Masjid } from "@/types";
+import { isVerifiedTime, type JummahTime, type Masjid } from "@/types";
 
 interface MasjidFormState {
   name: string;
@@ -533,20 +534,27 @@ function JummahTimesEditor({
     });
   };
 
-  const saveEdit = (id: string) =>
-    run(async () => {
+  /**
+   * Two ways to save, because an edit isn't always a fresh check. "Mark
+   * verified" stamps today and promotes a community time, same as
+   * markTimeVerified. Without it the row keeps the provenance it had — a
+   * verified time keeps its original date (right for fixing a typo in what
+   * was checked, wrong for a schedule that changed), a community time stays
+   * community. Neither path lets a row claim a check nobody made.
+   */
+  const saveEdit = (id: string, markVerified: boolean) => {
+    if (!confirmJummahTimes(edit.khutbahTime, edit.iqamahTime)) return;
+    void run(async () => {
       await admin.updateJummahTime(id, {
         khutbah_time: edit.khutbahTime,
         iqamah_time: edit.iqamahTime || null,
         language: edit.language.trim() || "English",
         notes: edit.notes.trim() || null,
-        // Editing implies you just confirmed it, so it's verified — and a
-        // community time edited here is promoted, same as markTimeVerified.
-        last_verified_at: new Date().toISOString(),
-        source: "admin",
+        ...(markVerified ? { last_verified_at: new Date().toISOString(), source: "admin" as const } : {}),
       });
       setEditingId(null);
     });
+  };
 
   // Retracted rows still occupy their khutbah number — unique(masjid_id,
   // khutbah_number) means ignoring them would collide on insert.
@@ -566,10 +574,20 @@ function JummahTimesEditor({
               <div>
                 <p className="mb-2 text-sm font-semibold text-night">Editing khutbah {time.khutbahNumber}</p>
                 <DraftFields value={edit} onChange={setEdit} />
-                <div className="mt-2 flex gap-2">
-                  <Button size="sm" onClick={() => void saveEdit(time.id)}>Save</Button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => saveEdit(time.id, true)}>
+                    Save &amp; mark verified today
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => saveEdit(time.id, false)}>
+                    {isVerifiedTime(time) ? "Save as a correction" : "Save, still unverified"}
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                 </div>
+                <p className="mt-1.5 text-xs text-ink-faint">
+                  {isVerifiedTime(time) && time.lastVerifiedAt
+                    ? `A correction keeps “Verified ${formatVerifiedDate(time.lastVerifiedAt)}” — for a typo in what was checked, not for a schedule that changed.`
+                    : "Saving without verifying keeps it labelled as an unverified community time."}
+                </p>
               </div>
             ) : (
               <>
@@ -653,6 +671,7 @@ function JummahTimesEditor({
         </div>
         <Button size="sm" className="mt-2"
           onClick={() =>
+            confirmJummahTimes(draft.khutbahTime, draft.iqamahTime) &&
             void run(() =>
               admin.addJummahTime({
                 masjid_id: masjid.id,
@@ -830,14 +849,12 @@ function DraftFields({ value, onChange }: { value: TimeDraft; onChange: (v: Time
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs text-ink-muted">Khutbah
-          <input type="time" required className={inputClass} value={value.khutbahTime}
-            onChange={(e) => onChange({ ...value, khutbahTime: e.target.value })} />
-        </label>
-        <label className="text-xs text-ink-muted">Iqamah (optional)
-          <input type="time" className={inputClass} value={value.iqamahTime}
-            onChange={(e) => onChange({ ...value, iqamahTime: e.target.value })} />
-        </label>
+        <JummahTimeInput label="Khutbah" required labelClassName="block text-xs text-ink-muted"
+          inputClassName={inputClass} value={value.khutbahTime}
+          onChange={(khutbahTime) => onChange({ ...value, khutbahTime })} />
+        <JummahTimeInput label="Iqamah (optional)" labelClassName="block text-xs text-ink-muted"
+          inputClassName={inputClass} value={value.iqamahTime}
+          onChange={(iqamahTime) => onChange({ ...value, iqamahTime })} />
       </div>
       <input aria-label="Language" placeholder="Language" className={`${inputClass} mt-2`} value={value.language}
         onChange={(e) => onChange({ ...value, language: e.target.value })} />
