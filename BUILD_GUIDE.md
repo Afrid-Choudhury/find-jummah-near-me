@@ -22,7 +22,7 @@ src/
 │   ├── masjid/        # MasjidCard, MasjidList, RecommendationCard,
 │   │                  # DirectionsButton, ConfidenceMeta, ConfidenceVote,
 │   │                  # JummahTimeBadge
-│   ├── map/           # MapPlaceholder (parked — see "Delayed features")
+│   ├── map/           # MasjidMap (desktop map pane; simplified plot for now)
 │   └── search/        # SearchBar
 ├── data/              # Mock fixtures (dev fallback, no backend needed)
 ├── features/
@@ -123,7 +123,7 @@ Accuracy is the product. Before real users:
 - Real travel times via a routing API behind `estimateTravel`.
 - Server-side vote rate limiting (per-IP via an Edge Function) if abuse appears.
 - Admin niceties: a "resolve reports" action that clears counters after review (add a `resolved_at` column rather than deleting signals).
-- Interactive map — the `MapPlaceholder` component is parked in the repo with a stable props contract for when list-first stops being enough.
+- Street map — `MasjidMap` (the desktop map pane beside the list) is a simplified pin plot with the props contract the Leaflet version will keep; swap its internals, not `HomePage`.
 
 ## Delayed features (per the vision — do not build yet)
 
