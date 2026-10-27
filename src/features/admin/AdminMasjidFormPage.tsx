@@ -571,24 +571,9 @@ function JummahTimesEditor({
         {masjid.jummahTimes.map((time) => (
           <li key={time.id} className="rounded-lg border border-line p-3">
             {editingId === time.id ? (
-              <div>
-                <p className="mb-2 text-sm font-semibold text-night">Editing khutbah {time.khutbahNumber}</p>
-                <DraftFields value={edit} onChange={setEdit} />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => saveEdit(time.id, true)}>
-                    Save &amp; mark verified today
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => saveEdit(time.id, false)}>
-                    {isVerifiedTime(time) ? "Save as a correction" : "Save, still unverified"}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                </div>
-                <p className="mt-1.5 text-xs text-ink-faint">
-                  {isVerifiedTime(time) && time.lastVerifiedAt
-                    ? `A correction keeps “Verified ${formatVerifiedDate(time.lastVerifiedAt)}” — for a typo in what was checked, not for a schedule that changed.`
-                    : "Saving without verifying keeps it labelled as an unverified community time."}
-                </p>
-              </div>
+              <TimeEditForm time={time} value={edit} onChange={setEdit}
+                onSave={(markVerified) => saveEdit(time.id, markVerified)}
+                onCancel={() => setEditingId(null)} />
             ) : (
               <>
                 <div className="flex items-center justify-between gap-2">
@@ -635,23 +620,33 @@ function JummahTimesEditor({
           <ul className="mt-2 space-y-2">
             {masjid.retractedTimes.map((time) => (
               <li key={time.id} className="rounded-lg border border-line bg-paper-raised p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold tabular-nums text-night">
-                    Khutbah {time.khutbahNumber} · {formatTime(time.khutbahTime)}
-                  </p>
-                  <div className="flex shrink-0 gap-3 text-xs">
-                    <button type="button" onClick={() => startEdit(time)} className="text-night underline">
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => void run(() => admin.deleteJummahTime(time.id))}
-                      className="text-red-700 underline">
-                      Remove
-                    </button>
-                  </div>
-                </div>
-                <p className="mt-1 text-xs text-ink-muted">
-                  👎 {time.reports} · 👍 {time.confirmations}
-                </p>
+                {/* Edit used to set editingId here without anything rendering
+                    the form, so a taken-down time couldn't be fixed in place. */}
+                {editingId === time.id ? (
+                  <TimeEditForm time={time} retracted value={edit} onChange={setEdit}
+                    onSave={(markVerified) => saveEdit(time.id, markVerified)}
+                    onCancel={() => setEditingId(null)} />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold tabular-nums text-night">
+                        Khutbah {time.khutbahNumber} · {formatTime(time.khutbahTime)}
+                      </p>
+                      <div className="flex shrink-0 gap-3 text-xs">
+                        <button type="button" onClick={() => startEdit(time)} className="text-night underline">
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => void run(() => admin.deleteJummahTime(time.id))}
+                          className="text-red-700 underline">
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      👎 {time.reports} · 👍 {time.confirmations}
+                    </p>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -840,6 +835,53 @@ function EditorsCard({ masjid }: { masjid: Masjid }) {
 
       {error && <p className="text-sm text-red-700">{error}</p>}
     </Card>
+  );
+}
+
+/**
+ * The inline editor for one schedule — for live times and for ones the
+ * community took down. Module-level, like DraftFields, so inputs keep focus.
+ * A taken-down time is community-sourced with reports outweighing
+ * confirmations, so a plain save leaves it hidden; marking it verified is
+ * what brings it back (verified times never auto-hide).
+ */
+function TimeEditForm({
+  time,
+  retracted = false,
+  value,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  time: JummahTime;
+  retracted?: boolean;
+  value: TimeDraft;
+  onChange: (v: TimeDraft) => void;
+  onSave: (markVerified: boolean) => void;
+  onCancel: () => void;
+}) {
+  const verified = isVerifiedTime(time);
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold text-night">Editing khutbah {time.khutbahNumber}</p>
+      <DraftFields value={value} onChange={onChange} />
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => onSave(true)}>
+          Save &amp; mark verified today
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => onSave(false)}>
+          {verified ? "Save as a correction" : retracted ? "Save, keep hidden" : "Save, still unverified"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+      </div>
+      <p className="mt-1.5 text-xs text-ink-faint">
+        {verified && time.lastVerifiedAt
+          ? `A correction keeps “Verified ${formatVerifiedDate(time.lastVerifiedAt)}” — for a typo in what was checked, not for a schedule that changed.`
+          : retracted
+            ? "Marking it verified brings it back on the site. Saving without verifying keeps it hidden — its reports still outweigh its confirmations."
+            : "Saving without verifying keeps it labelled as an unverified community time."}
+      </p>
+    </div>
   );
 }
 
